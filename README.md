@@ -1,10 +1,15 @@
 # Valid Mail
 
-A small self-hosted email validity and reachability service written in Go.
+A small self-hosted email validity, work-email discovery, and reachability service written in Go.
 
 The primary validity check uses [AfterShip/email-verifier](https://github.com/AfterShip/email-verifier) for syntax and domain metadata. The existing confidence-aware SMTP probe layer remains separate and can run through rotating SOCKS5 proxies when mailbox-level evidence is available.
 
 The web UI and JSON API are served by the same process, so the project can run as one Render service.
+
+## Product surfaces
+
+- `/` — verify a known email address
+- `/finder` — find likely work-email candidates from a person's name and company
 
 ## What it checks
 
@@ -17,6 +22,23 @@ The web UI and JSON API are served by the same process, so the project can run a
 - Free email providers
 - Common domain typo suggestions
 
+### Work-email discovery — no LinkedIn scraping
+
+The finder accepts a person name plus either a company name or a known company domain.
+
+When only a company name is supplied, Valid Mail:
+
+1. Generates likely official-domain candidates from the company name.
+2. Keeps only public DNS destinations and safely fetches candidate homepages.
+3. Scores company-name/title matches, domain-name similarity, and mail capability.
+4. Crawls a small robots-aware set of public company pages such as `/about`, `/team`, `/people`, `/contact`, `/press`, `security.txt`, and relevant sitemap links.
+5. Extracts real `@company-domain` emails from those pages.
+6. Learns the dominant company email pattern when enough examples exist.
+7. Generates a small ranked set of candidates for the requested person.
+8. Runs SMTP-independent validity checks on each generated candidate.
+
+The web crawler uses bounded concurrency, short timeouts, page limits, caching, same-domain link discovery, response-size limits, and SSRF protection. It does not use the SMTP ProxyScrape pool and does not scrape LinkedIn.
+
 ### Optional mailbox reachability — existing SMTP layer
 
 - SMTP recipient response codes and enhanced status codes
@@ -26,7 +48,7 @@ The web UI and JSON API are served by the same process, so the project can run a
 
 ## Validity model
 
-Every successful `/api/verify` response now includes a `validity` object that is deliberately independent of SMTP and proxy availability.
+Every successful `/api/verify` response includes a `validity` object that is deliberately independent of SMTP and proxy availability.
 
 `validity.status` is one of:
 
@@ -56,6 +78,36 @@ Example:
 
 A `valid` result does **not** claim that the individual mailbox exists or belongs to a particular person. That is why mailbox reachability remains a separate signal.
 
+## Finder API
+
+### POST `/api/find-work-email`
+
+Company name only:
+
+```bash
+curl -X POST http://localhost:8080/api/find-work-email \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Jane Smith","company":"Acme Labs"}'
+```
+
+If you already know the company domain, provide it to skip automatic domain resolution:
+
+```bash
+curl -X POST http://localhost:8080/api/find-work-email \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Jane Smith","company":"Acme Labs","domain":"acme.com"}'
+```
+
+The response includes:
+
+- `domain_resolution` — selected domain, confidence, method, and high-scoring alternatives
+- `observed_email_count` — public company-domain emails found
+- `pages_fetched` — bounded public pages actually read
+- `pattern` / `pattern_confidence` — inferred naming convention
+- `candidates` — ranked work-email candidates, public source evidence when exact matches were found, and SMTP-independent validity
+
+The older `POST /api/find-email` endpoint remains available when the caller already knows the company domain.
+
 ## Reachability model
 
 The existing SMTP behavior is unchanged.
@@ -83,12 +135,13 @@ Requires Go 1.25+.
 
 ```bash
 go mod download
+go test ./...
 go run .
 ```
 
-Open `http://localhost:8080`.
+Open `http://localhost:8080` or `http://localhost:8080/finder`.
 
-## API
+## Verify API
 
 ### POST `/api/verify`
 
@@ -120,6 +173,8 @@ Render Free blocks direct outbound SMTP, so the default deployment can use the f
 
 Public proxies are untrusted and unstable. Valid Mail never sends authentication credentials or an email message body through them, and the API never exposes the proxy IPs it used.
 
+The public-web finder does **not** use these proxies. Web discovery intentionally uses direct, rate-limited, robots-aware HTTP requests instead of proxy rotation for block evasion.
+
 ## Environment variables
 
 | Variable | Default | Description |
@@ -147,7 +202,9 @@ Public proxies are untrusted and unstable. Valid Mail never sends authentication
 
 Syntax + MX validation can establish that an address is structurally plausible and its domain is configured to receive email. It cannot prove that the mailbox exists.
 
-SMTP probing also cannot bypass a provider that deliberately hides recipient existence. Catch-all domains can remain ambiguous. Definitive proof that a user controls an address still requires a delivered verification link/OTP or subsequent bounce processing.
+Pattern inference is also probabilistic. An inferred address should be treated as a candidate unless it was found directly on a public company page.
+
+SMTP probing cannot bypass a provider that deliberately hides recipient existence. Catch-all domains can remain ambiguous. Definitive proof that a user controls an address still requires a delivered verification link/OTP or subsequent bounce processing.
 
 ## Dependency
 
