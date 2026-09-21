@@ -9,6 +9,8 @@ services:
     healthCheckPath: /healthz
     autoDeploy: true
     envVars:
+      - key: GOFLAGS
+        value: "-mod=mod"
       - key: ENABLE_SMTP
         value: "false"
       - key: AUTO_UPDATE_DISPOSABLE
