@@ -78,9 +78,11 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", app.handleHome)
+	mux.HandleFunc("/finder", app.handleFinderPage)
 	mux.HandleFunc("/healthz", app.handleHealth)
 	mux.HandleFunc("/api/verify", app.handleVerify)
 	mux.HandleFunc("/api/find-email", app.handleFindEmail)
+	mux.HandleFunc("/api/find-work-email", app.handleFindWorkEmail)
 
 	port := strings.TrimSpace(os.Getenv("PORT"))
 	if port == "" {
