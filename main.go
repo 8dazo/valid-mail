@@ -80,6 +80,7 @@ func main() {
 	mux.HandleFunc("/", app.handleHome)
 	mux.HandleFunc("/healthz", app.handleHealth)
 	mux.HandleFunc("/api/verify", app.handleVerify)
+	mux.HandleFunc("/api/find-email", app.handleFindEmail)
 
 	port := strings.TrimSpace(os.Getenv("PORT"))
 	if port == "" {
