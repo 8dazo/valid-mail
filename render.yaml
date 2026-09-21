@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: valid-mail
+    runtime: go
+    plan: free
+    region: singapore
+    buildCommand: go build -o bin/valid-mail .
+    startCommand: ./bin/valid-mail
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: ENABLE_SMTP
+        value: "false"
+      - key: AUTO_UPDATE_DISPOSABLE
+        value: "false"
