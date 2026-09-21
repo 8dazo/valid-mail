@@ -1,32 +1,40 @@
 # Valid Mail
 
-A small self-hosted email verification service built in Go using [AfterShip/email-verifier](https://github.com/AfterShip/email-verifier).
+A small self-hosted email verification service written in Go. It combines [AfterShip/email-verifier](https://github.com/AfterShip/email-verifier) for syntax/domain metadata with a confidence-aware SMTP probe layer that can run through rotating SOCKS5 proxies.
 
-It serves a web UI and JSON API from one process. On hosts such as Render Free that block direct SMTP, it can optionally fetch public SOCKS5 proxies from ProxyScrape, probe them for outbound SMTP access, cache the healthy ones, and rotate them for mailbox checks.
+The web UI and JSON API are served by the same process, so the project can run as one Render service.
 
-## Checks
+## What it checks
 
 - Email syntax
 - DNS MX records
-- Disposable domains
-- Role accounts (`support@`, `admin@`, etc.)
+- Disposable email domains
+- Role accounts such as `support@` and `admin@`
 - Free email providers
-- Domain typo suggestions
-- Optional SMTP reachability without sending an email
+- Common domain typo suggestions
+- SMTP recipient response codes and enhanced status codes
+- Catch-all behavior using multiple random non-existent recipients
+- Mailbox-full / disabled / temporary / greylisted / rate-limited / policy-blocked responses
+- Independent-route confirmation before a public proxy rejection can mark an address invalid
 
-> SMTP is a signal, not proof. Catch-all domains and anti-abuse systems can intentionally return ambiguous results.
+## Reachability model
 
-## Proxy SMTP mode
+`reachability.status` is one of:
 
-When `ENABLE_PROXY_SMTP=true`, the service:
+- `valid` — target accepted and random recipients were rejected (non-catch-all evidence)
+- `invalid` — strong recipient-specific negative evidence, normally confirmed over multiple routes when public proxies are used
+- `risky` — mailbox may exist but SMTP cannot prove it safely (catch-all, full mailbox, target accepted while catch-all test is inconclusive)
+- `unknown` — route blocked, greylisted, rate-limited, unavailable, or otherwise not recipient-specific
 
-1. Fetches SOCKS5 candidates from ProxyScrape's free proxy API.
-2. Tests a bounded number of candidates against public MX servers on port 25.
-3. Keeps only proxies that return an SMTP `220` banner.
-4. Rotates healthy proxies for verification requests.
-5. Falls back to DNS/domain-level results if the proxy pool is empty or SMTP is inconclusive.
+`reachability.confidence` describes confidence in the displayed verdict. It is **not** a probability that an email belongs to a real person.
 
-Public proxies are unstable and untrusted. The service does not send authentication credentials through them. Target addresses can still be visible to a proxy operator during SMTP probing, so this mode is intended for experimentation/MVP use rather than sensitive data.
+### Why negative consensus?
+
+Public proxy IPs are often blocked or poorly reputed. One `550`-style response is therefore not enough unless it is clearly recipient-specific and confirmed by the configured number of independent routes. The default is two routes.
+
+### Catch-all detection
+
+When the target is accepted, Valid Mail probes multiple random addresses at the same domain. If all random recipients are accepted, the domain is reported as catch-all and the target is `risky`, not `valid`. If all random recipients are explicitly rejected as missing, the target can be classified much more confidently.
 
 ## Run locally
 
@@ -41,7 +49,7 @@ Open `http://localhost:8080`.
 
 ## API
 
-### `POST /api/verify`
+### POST `/api/verify`
 
 ```bash
 curl -X POST http://localhost:8080/api/verify \
@@ -49,43 +57,51 @@ curl -X POST http://localhost:8080/api/verify \
   -d '{"email":"hello@example.com"}'
 ```
 
-### `GET /api/verify?email=...`
+The response includes the original AfterShip `verification` object plus a richer `reachability` object containing status, reason, evidence, provider, SMTP reply, catch-all evidence, attempts, and consensus.
+
+### GET `/api/verify?email=...`
 
 ```bash
 curl 'http://localhost:8080/api/verify?email=hello@example.com'
 ```
 
-### `GET /healthz`
+### GET `/healthz`
 
-Returns service state and proxy-pool health without exposing proxy IPs.
+Returns service health plus proxy-pool size and the active SMTP verification policy.
+
+## SMTP / proxy behavior
+
+Render Free blocks direct outbound SMTP, so the default deployment can use the free ProxyScrape SOCKS5 list. The pool only retains proxies that can open a real SMTP connection and read a `220` greeting.
+
+Public proxies are untrusted and unstable. Valid Mail never sends authentication credentials or an email message body through them, and the API never exposes the proxy IPs it used.
 
 ## Environment variables
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `PORT` | `8080` | HTTP port. Render injects this. |
-| `ENABLE_SMTP` | `false` | Enables direct SMTP from the host. |
-| `ENABLE_PROXY_SMTP` | `true` | Enables the ProxyScrape SOCKS5 SMTP pool. |
-| `PROXY_SOURCE_URL` | ProxyScrape free SOCKS5 API | Proxy list source. |
-| `PROXY_MAX_CANDIDATES` | `40` | Maximum proxies tested per refresh. |
-| `PROXY_MAX_HEALTHY` | `8` | Maximum healthy proxies cached. |
-| `PROXY_PROBE_CONCURRENCY` | `12` | Concurrent proxy health probes. |
-| `PROXY_PROBE_TIMEOUT` | `4s` | Timeout per SMTP proxy probe. |
+| `PORT` | `8080` | HTTP port; Render injects this. |
+| `ENABLE_SMTP` | `false` | Enable direct SMTP (requires outbound port 25). |
+| `ENABLE_PROXY_SMTP` | `true` | Enable SMTP through the rotating SOCKS5 pool. |
+| `SMTP_FROM_EMAIL` | empty | Envelope sender used for `MAIL FROM`; use a domain you control for best results. |
+| `SMTP_HELLO_NAME` | empty | Hostname used for `EHLO`/`HELO`; use a domain you control. |
+| `SMTP_CONNECT_TIMEOUT` | `7s` | SMTP connect timeout. |
+| `SMTP_OPERATION_TIMEOUT` | `8s` | SMTP operation deadline. |
+| `SMTP_MAX_ATTEMPTS` | `3` | Maximum independent SMTP routes tried per request. |
+| `SMTP_CATCHALL_PROBES` | `2` | Number of random recipient probes after the target is accepted. |
+| `SMTP_NEGATIVE_CONSENSUS` | `2` | Independent recipient-missing replies required before marking invalid via public proxies. |
+| `SMTP_MAX_CONCURRENCY` | `4` | Maximum simultaneous mailbox probes. |
+| `PROXY_SOURCE_URL` | ProxyScrape free SOCKS5 API | Source for proxy candidates. |
+| `PROXY_MAX_CANDIDATES` | `40` | Candidates tested each refresh (Render currently overrides this higher). |
+| `PROXY_MAX_HEALTHY` | `8` | Maximum healthy proxies retained. |
+| `PROXY_PROBE_CONCURRENCY` | `12` | Concurrent health probes. |
+| `PROXY_PROBE_TIMEOUT` | `4s` | Per-proxy SMTP health timeout. |
 | `PROXY_REFRESH_INTERVAL` | `5m` | Healthy-pool refresh interval. |
-| `SMTP_MAX_ATTEMPTS` | `2` | Maximum proxy SMTP attempts per email check. |
-| `SMTP_MAX_CONCURRENCY` | `4` | Maximum concurrent SMTP verifications. |
-| `SMTP_CONNECT_TIMEOUT` | `7s` | SMTP connection timeout. |
-| `SMTP_OPERATION_TIMEOUT` | `7s` | SMTP command timeout. |
-| `SMTP_FROM_EMAIL` | empty | Optional real sender address for `MAIL FROM`. Recommended for higher reliability. |
-| `SMTP_HELLO_NAME` | empty | Optional real hostname/domain for `EHLO`. Recommended for higher reliability. |
-| `AUTO_UPDATE_DISPOSABLE` | `false` | Enable AfterShip disposable-domain auto updates. |
+| `AUTO_UPDATE_DISPOSABLE` | `false` | AfterShip disposable-domain updater. |
 
-## Render
+## Notes on certainty
 
-`render.yaml` configures a free Go service in Singapore. Direct SMTP stays disabled; proxy SMTP is enabled.
+SMTP probing cannot bypass a provider that deliberately hides recipient existence. Catch-all domains also cannot be conclusively resolved by SMTP alone. The definitive proof that a user controls an address remains a delivered verification link/OTP or subsequent bounce processing.
 
-- Build: `go build -o bin/valid-mail .`
-- Start: `./bin/valid-mail`
-- Health: `/healthz`
+## Dependency
 
-The app has no database and no frontend build step.
+The service pins `github.com/AfterShip/email-verifier` v1.5.0 or newer compatible version used by this project. v1.5.0 includes important SMTP-result and security fixes over v1.4.1.
