@@ -17,16 +17,18 @@ import (
 var indexHTML []byte
 
 type application struct {
-	baseVerifier     *emailverifier.Verifier
-	directSMTP       bool
-	proxySMTP        bool
-	proxyPool        *proxyPool
-	fromEmail        string
-	helloName        string
-	connectTimeout   time.Duration
-	operationTimeout time.Duration
-	maxSMTPAttempts  int
-	smtpSlots        chan struct{}
+	baseVerifier      *emailverifier.Verifier
+	directSMTP        bool
+	proxySMTP         bool
+	proxyPool         *proxyPool
+	fromEmail         string
+	helloName         string
+	connectTimeout    time.Duration
+	operationTimeout  time.Duration
+	maxSMTPAttempts   int
+	catchAllProbes    int
+	negativeConsensus int
+	smtpSlots         chan struct{}
 }
 
 type verifyRequest struct {
@@ -34,15 +36,16 @@ type verifyRequest struct {
 }
 
 type verifyResponse struct {
-	Success        bool                  `json:"success"`
-	Verification   *emailverifier.Result `json:"verification,omitempty"`
-	SMTPEnabled    bool                  `json:"smtp_enabled"`
-	SMTPAttempted  bool                  `json:"smtp_attempted"`
-	SMTPViaProxy   bool                  `json:"smtp_via_proxy"`
-	HealthyProxies int                   `json:"healthy_proxies,omitempty"`
-	Warning        string                `json:"warning,omitempty"`
-	CheckedAt      time.Time             `json:"checked_at"`
-	DurationMS     int64                 `json:"duration_ms"`
+	Success        bool                    `json:"success"`
+	Verification   *emailverifier.Result   `json:"verification,omitempty"`
+	Reachability   *reachabilityAssessment `json:"reachability,omitempty"`
+	SMTPEnabled    bool                    `json:"smtp_enabled"`
+	SMTPAttempted  bool                    `json:"smtp_attempted"`
+	SMTPViaProxy   bool                    `json:"smtp_via_proxy"`
+	HealthyProxies int                     `json:"healthy_proxies,omitempty"`
+	Warning        string                  `json:"warning,omitempty"`
+	CheckedAt      time.Time               `json:"checked_at"`
+	DurationMS     int64                   `json:"duration_ms"`
 }
 
 func main() {
@@ -55,15 +58,17 @@ func main() {
 	}
 
 	app := &application{
-		baseVerifier:     baseVerifier,
-		directSMTP:       directSMTP,
-		proxySMTP:        proxySMTP,
-		fromEmail:        envString("SMTP_FROM_EMAIL", ""),
-		helloName:        envString("SMTP_HELLO_NAME", ""),
-		connectTimeout:   envDuration("SMTP_CONNECT_TIMEOUT", 7*time.Second, time.Second, 20*time.Second),
-		operationTimeout: envDuration("SMTP_OPERATION_TIMEOUT", 7*time.Second, time.Second, 20*time.Second),
-		maxSMTPAttempts:  envInt("SMTP_MAX_ATTEMPTS", 2, 1, 4),
-		smtpSlots:        make(chan struct{}, envInt("SMTP_MAX_CONCURRENCY", 4, 1, 20)),
+		baseVerifier:      baseVerifier,
+		directSMTP:        directSMTP,
+		proxySMTP:         proxySMTP,
+		fromEmail:         envString("SMTP_FROM_EMAIL", ""),
+		helloName:         envString("SMTP_HELLO_NAME", ""),
+		connectTimeout:    envDuration("SMTP_CONNECT_TIMEOUT", 7*time.Second, time.Second, 20*time.Second),
+		operationTimeout:  envDuration("SMTP_OPERATION_TIMEOUT", 8*time.Second, time.Second, 25*time.Second),
+		maxSMTPAttempts:   envInt("SMTP_MAX_ATTEMPTS", 3, 1, 5),
+		catchAllProbes:    envInt("SMTP_CATCHALL_PROBES", 2, 1, 3),
+		negativeConsensus: envInt("SMTP_NEGATIVE_CONSENSUS", 2, 1, 3),
+		smtpSlots:         make(chan struct{}, envInt("SMTP_MAX_CONCURRENCY", 4, 1, 20)),
 	}
 
 	if proxySMTP {
@@ -86,7 +91,7 @@ func main() {
 		Handler:           securityHeaders(mux),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,
-		WriteTimeout:      35 * time.Second,
+		WriteTimeout:      45 * time.Second,
 		IdleTimeout:       60 * time.Second,
 	}
 
@@ -124,6 +129,9 @@ func (app *application) handleHealth(w http.ResponseWriter, r *http.Request) {
 		"smtp_enabled":       app.directSMTP || app.proxySMTP,
 		"direct_smtp":        app.directSMTP,
 		"proxy_smtp_enabled": app.proxySMTP,
+		"catch_all_probes":   app.catchAllProbes,
+		"negative_consensus": app.negativeConsensus,
+		"max_smtp_attempts":  app.maxSMTPAttempts,
 		"time":               time.Now().UTC(),
 	}
 	if app.proxyPool != nil {
@@ -156,10 +164,7 @@ func (app *application) handleVerify(w http.ResponseWriter, r *http.Request) {
 		decoder := json.NewDecoder(r.Body)
 		decoder.DisallowUnknownFields()
 		if err := decoder.Decode(&req); err != nil {
-			writeJSON(w, http.StatusBadRequest, map[string]any{
-				"success": false,
-				"error":   "invalid JSON body",
-			})
+			writeJSON(w, http.StatusBadRequest, map[string]any{"success": false, "error": "invalid JSON body"})
 			return
 		}
 		email = req.Email
@@ -167,17 +172,11 @@ func (app *application) handleVerify(w http.ResponseWriter, r *http.Request) {
 
 	email = strings.TrimSpace(email)
 	if email == "" {
-		writeJSON(w, http.StatusBadRequest, map[string]any{
-			"success": false,
-			"error":   "email is required",
-		})
+		writeJSON(w, http.StatusBadRequest, map[string]any{"success": false, "error": "email is required"})
 		return
 	}
 	if len(email) > 320 {
-		writeJSON(w, http.StatusBadRequest, map[string]any{
-			"success": false,
-			"error":   "email is too long",
-		})
+		writeJSON(w, http.StatusBadRequest, map[string]any{"success": false, "error": "email is too long"})
 		return
 	}
 
@@ -188,10 +187,7 @@ func (app *application) handleVerify(w http.ResponseWriter, r *http.Request) {
 		if baseErr != nil {
 			message = baseErr.Error()
 		}
-		writeJSON(w, http.StatusBadGateway, map[string]any{
-			"success": false,
-			"error":   message,
-		})
+		writeJSON(w, http.StatusBadGateway, map[string]any{"success": false, "error": message})
 		return
 	}
 
@@ -208,43 +204,35 @@ func (app *application) handleVerify(w http.ResponseWriter, r *http.Request) {
 		response.Warning = baseErr.Error()
 	}
 
-	if shouldAttemptSMTP(result) && (app.directSMTP || app.proxySMTP) {
+	if !result.Syntax.Valid {
+		response.Reachability = &reachabilityAssessment{Status: "invalid", Reason: "bad_syntax", Confidence: 100, Evidence: "The email address syntax is invalid."}
+	} else if !result.HasMxRecords {
+		response.Reachability = &reachabilityAssessment{Status: "invalid", Reason: "no_mx", Confidence: 100, Evidence: "The domain does not publish MX records for receiving mail."}
+	} else if result.Disposable {
+		response.Reachability = &reachabilityAssessment{Status: "risky", Reason: "disposable_domain", Confidence: 95, Evidence: "The address belongs to a known disposable-email domain."}
+	} else if shouldAttemptSMTP(result) && (app.directSMTP || app.proxySMTP) {
 		select {
 		case app.smtpSlots <- struct{}{}:
 			defer func() { <-app.smtpSlots }()
 		case <-r.Context().Done():
+			response.Reachability = &reachabilityAssessment{Status: "unknown", Reason: "request_cancelled", Confidence: 0, Evidence: "The request ended before SMTP verification could run.", Retryable: true}
 			response.Warning = "request cancelled before SMTP verification"
 			response.DurationMS = time.Since(started).Milliseconds()
 			writeJSON(w, http.StatusOK, response)
 			return
 		}
 
-		if app.proxySMTP && app.proxyPool != nil {
-			smtpResult, attempted, err := app.verifyThroughProxy(email)
-			response.SMTPAttempted = attempted
-			response.SMTPViaProxy = attempted
+		assessment, attempted, viaProxy := app.assessReachability(email)
+		response.Reachability = assessment
+		response.SMTPAttempted = attempted
+		response.SMTPViaProxy = viaProxy
+		if app.proxyPool != nil {
 			response.HealthyProxies = app.proxyPool.stats().Healthy
-			if smtpResult != nil && err == nil {
-				response.Verification = smtpResult
-				response.Warning = ""
-			} else if attempted {
-				response.Warning = "SMTP through public SOCKS5 proxies was inconclusive; showing domain-level checks instead."
-			} else if !app.directSMTP {
-				response.Warning = "No healthy SMTP-capable public SOCKS5 proxy is available right now; showing domain-level checks instead."
-				app.proxyPool.triggerRefresh()
-			}
 		}
-
-		if !response.SMTPAttempted && app.directSMTP {
-			response.SMTPAttempted = true
-			smtpResult, err := app.smtpVerifier("").Verify(email)
-			if smtpResult != nil && err == nil {
-				response.Verification = smtpResult
-				response.Warning = ""
-			} else {
-				response.Warning = "Direct SMTP verification failed; showing domain-level checks instead."
-			}
-		}
+		applyAssessment(result, assessment)
+		response.Warning = warningForAssessment(assessment)
+	} else {
+		response.Reachability = &reachabilityAssessment{Status: "unknown", Reason: "smtp_unavailable", Confidence: 0, Evidence: "Domain checks pass, but mailbox-level SMTP verification is not enabled.", Retryable: true}
 	}
 
 	response.CheckedAt = time.Now().UTC()
@@ -252,50 +240,48 @@ func (app *application) handleVerify(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, response)
 }
 
-func (app *application) verifyThroughProxy(email string) (*emailverifier.Result, bool, error) {
-	exclude := make(map[string]struct{})
-	var lastResult *emailverifier.Result
-	var lastErr error
-
-	for attempt := 0; attempt < app.maxSMTPAttempts; attempt++ {
-		proxyURI := app.proxyPool.nextProxy(exclude)
-		if proxyURI == "" {
-			break
-		}
-		exclude[proxyURI] = struct{}{}
-
-		result, err := app.smtpVerifier(proxyURI).Verify(email)
-		if result != nil {
-			lastResult = result
-		}
-		if err == nil {
-			return result, true, nil
-		}
-		lastErr = err
-		if result == nil || result.SMTP == nil {
-			app.proxyPool.markBad(proxyURI)
+func applyAssessment(result *emailverifier.Result, assessment *reachabilityAssessment) {
+	if result == nil || assessment == nil {
+		return
+	}
+	if assessment.SMTPConnected || assessment.Target != nil {
+		result.SMTP = &emailverifier.SMTP{
+			HostExists:  assessment.SMTPConnected,
+			FullInbox:   assessment.Reason == "smtp_mailbox_full",
+			CatchAll:    assessment.CatchAll != nil && *assessment.CatchAll,
+			Deliverable: assessment.Status == "valid" || assessment.Reason == "smtp_accepted_catch_all_unknown" || assessment.Reason == "smtp_catch_all",
+			Disabled:    assessment.Reason == "smtp_disabled",
 		}
 	}
-
-	return lastResult, len(exclude) > 0, lastErr
+	switch assessment.Status {
+	case "valid":
+		result.Reachable = "yes"
+	case "invalid":
+		result.Reachable = "no"
+	default:
+		result.Reachable = "unknown"
+	}
 }
 
-func (app *application) smtpVerifier(proxyURI string) *emailverifier.Verifier {
-	verifier := emailverifier.NewVerifier().
-		EnableDomainSuggest().
-		EnableSMTPCheck().
-		ConnectTimeout(app.connectTimeout).
-		OperationTimeout(app.operationTimeout)
-	if proxyURI != "" {
-		verifier.Proxy(proxyURI)
+func warningForAssessment(a *reachabilityAssessment) string {
+	if a == nil {
+		return ""
 	}
-	if app.fromEmail != "" {
-		verifier.FromEmail(app.fromEmail)
+	switch a.Reason {
+	case "smtp_blocked", "smtp_sender_rejected", "smtp_session_rejected":
+		return "The mail server rejected the verification route or sender identity, so mailbox existence remains unknown."
+	case "smtp_greylisted", "smtp_rate_limited", "smtp_temporary_failure":
+		return "The mail server temporarily deferred verification. Retry later for a more conclusive result."
+	case "negative_unconfirmed":
+		return "One route rejected the recipient, but a second independent SMTP route did not confirm the negative result."
+	case "no_healthy_proxy":
+		return "No healthy SMTP-capable public SOCKS5 proxy is available right now; showing domain-level checks instead."
+	case "smtp_catch_all":
+		return "This domain accepts random non-existent recipients, so SMTP cannot prove this specific mailbox exists."
+	case "smtp_accepted_catch_all_unknown":
+		return "The target was accepted, but catch-all behavior could not be established conclusively."
 	}
-	if app.helloName != "" {
-		verifier.HelloName(app.helloName)
-	}
-	return verifier
+	return ""
 }
 
 func shouldAttemptSMTP(result *emailverifier.Result) bool {
