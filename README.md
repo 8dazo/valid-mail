@@ -1,10 +1,14 @@
 # Valid Mail
 
-A small self-hosted email verification service written in Go. It combines [AfterShip/email-verifier](https://github.com/AfterShip/email-verifier) for syntax/domain metadata with a confidence-aware SMTP probe layer that can run through rotating SOCKS5 proxies.
+A small self-hosted email validity and reachability service written in Go.
+
+The primary validity check uses [AfterShip/email-verifier](https://github.com/AfterShip/email-verifier) for syntax and domain metadata. The existing confidence-aware SMTP probe layer remains separate and can run through rotating SOCKS5 proxies when mailbox-level evidence is available.
 
 The web UI and JSON API are served by the same process, so the project can run as one Render service.
 
 ## What it checks
+
+### Validity — no SMTP required
 
 - Email syntax
 - DNS MX records
@@ -12,12 +16,49 @@ The web UI and JSON API are served by the same process, so the project can run a
 - Role accounts such as `support@` and `admin@`
 - Free email providers
 - Common domain typo suggestions
+
+### Optional mailbox reachability — existing SMTP layer
+
 - SMTP recipient response codes and enhanced status codes
 - Catch-all behavior using multiple random non-existent recipients
 - Mailbox-full / disabled / temporary / greylisted / rate-limited / policy-blocked responses
 - Independent-route confirmation before a public proxy rejection can mark an address invalid
 
+## Validity model
+
+Every successful `/api/verify` response now includes a `validity` object that is deliberately independent of SMTP and proxy availability.
+
+`validity.status` is one of:
+
+- `valid` — syntax is valid and the domain publishes MX records
+- `invalid` — syntax is invalid or the domain does not publish MX records
+- `risky` — the address uses a disposable domain or has a possible domain typo that should be reviewed
+
+Example:
+
+```json
+{
+  "validity": {
+    "status": "valid",
+    "scope": "address_and_domain",
+    "reason": "syntax_and_domain_valid",
+    "evidence": "The address syntax is valid and the domain publishes MX records. This validates the address/domain structure, not the existence of the individual mailbox.",
+    "checks": {
+      "syntax_valid": true,
+      "has_mx": true,
+      "disposable": false,
+      "role_account": false,
+      "free_provider": false
+    }
+  }
+}
+```
+
+A `valid` result does **not** claim that the individual mailbox exists or belongs to a particular person. That is why mailbox reachability remains a separate signal.
+
 ## Reachability model
+
+The existing SMTP behavior is unchanged.
 
 `reachability.status` is one of:
 
@@ -26,7 +67,7 @@ The web UI and JSON API are served by the same process, so the project can run a
 - `risky` — mailbox may exist but SMTP cannot prove it safely (catch-all, full mailbox, target accepted while catch-all test is inconclusive)
 - `unknown` — route blocked, greylisted, rate-limited, unavailable, or otherwise not recipient-specific
 
-`reachability.confidence` describes confidence in the displayed verdict. It is **not** a probability that an email belongs to a real person.
+`reachability.confidence` describes confidence in the displayed reachability verdict. It is **not** a probability that an email belongs to a real person.
 
 ### Why negative consensus?
 
@@ -57,7 +98,11 @@ curl -X POST http://localhost:8080/api/verify \
   -d '{"email":"hello@example.com"}'
 ```
 
-The response includes the original AfterShip `verification` object plus a richer `reachability` object containing status, reason, evidence, provider, SMTP reply, catch-all evidence, attempts, and consensus.
+The response includes:
+
+- `verification` — upstream syntax/domain metadata
+- `validity` — SMTP-independent address/domain validity
+- `reachability` — existing mailbox-level SMTP assessment when available
 
 ### GET `/api/verify?email=...`
 
@@ -100,7 +145,9 @@ Public proxies are untrusted and unstable. Valid Mail never sends authentication
 
 ## Notes on certainty
 
-SMTP probing cannot bypass a provider that deliberately hides recipient existence. Catch-all domains also cannot be conclusively resolved by SMTP alone. The definitive proof that a user controls an address remains a delivered verification link/OTP or subsequent bounce processing.
+Syntax + MX validation can establish that an address is structurally plausible and its domain is configured to receive email. It cannot prove that the mailbox exists.
+
+SMTP probing also cannot bypass a provider that deliberately hides recipient existence. Catch-all domains can remain ambiguous. Definitive proof that a user controls an address still requires a delivered verification link/OTP or subsequent bounce processing.
 
 ## Dependency
 
