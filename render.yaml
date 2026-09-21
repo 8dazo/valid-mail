@@ -13,5 +13,19 @@ services:
         value: "-mod=mod"
       - key: ENABLE_SMTP
         value: "false"
+      - key: ENABLE_PROXY_SMTP
+        value: "true"
+      - key: PROXY_MAX_CANDIDATES
+        value: "40"
+      - key: PROXY_MAX_HEALTHY
+        value: "8"
+      - key: PROXY_REFRESH_INTERVAL
+        value: "5m"
+      - key: PROXY_PROBE_TIMEOUT
+        value: "4s"
+      - key: SMTP_MAX_ATTEMPTS
+        value: "2"
+      - key: SMTP_MAX_CONCURRENCY
+        value: "4"
       - key: AUTO_UPDATE_DISPOSABLE
         value: "false"

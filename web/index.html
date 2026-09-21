@@ -4,190 +4,31 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Valid Mail</title>
-  <meta name="description" content="A small self-hosted email verification tool powered by AfterShip/email-verifier." />
+  <meta name="description" content="Self-hosted email verification with DNS checks and optional SMTP probing through a rotating SOCKS5 proxy pool." />
   <style>
-    :root {
-      color-scheme: dark;
-      --bg: #0b0d10;
-      --panel: #11151a;
-      --panel-2: #171c22;
-      --border: #252c34;
-      --text: #f4f7fb;
-      --muted: #8d98a5;
-      --good: #79e6a5;
-      --bad: #ff8585;
-      --warn: #ffd479;
-      --accent: #a9c7ff;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      min-height: 100vh;
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: radial-gradient(circle at top, #151a21 0, var(--bg) 38rem);
-      color: var(--text);
-    }
-    main {
-      width: min(920px, calc(100% - 32px));
-      margin: 0 auto;
-      padding: 72px 0;
-    }
-    .eyebrow {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      color: var(--muted);
-      font-size: 13px;
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      padding: 7px 10px;
-      background: rgba(17, 21, 26, .72);
-    }
-    .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--good); box-shadow: 0 0 14px var(--good); }
-    h1 {
-      font-size: clamp(42px, 8vw, 78px);
-      letter-spacing: -0.055em;
-      line-height: .95;
-      margin: 24px 0 16px;
-    }
-    .lead {
-      margin: 0 0 36px;
-      max-width: 690px;
-      color: var(--muted);
-      line-height: 1.65;
-      font-size: 17px;
-    }
-    .search {
-      display: flex;
-      gap: 10px;
-      padding: 10px;
-      border: 1px solid var(--border);
-      background: rgba(17, 21, 26, .86);
-      border-radius: 18px;
-      box-shadow: 0 24px 80px rgba(0,0,0,.25);
-    }
-    input {
-      flex: 1;
-      min-width: 0;
-      border: 0;
-      outline: 0;
-      background: transparent;
-      color: var(--text);
-      padding: 12px 14px;
-      font-size: 16px;
-    }
-    input::placeholder { color: #646f7c; }
-    button {
-      border: 0;
-      border-radius: 12px;
-      padding: 0 20px;
-      min-height: 48px;
-      background: var(--text);
-      color: #111;
-      font-weight: 750;
-      cursor: pointer;
-    }
-    button:disabled { opacity: .5; cursor: wait; }
-    .meta {
-      display: flex;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 8px;
-      color: var(--muted);
-      font-size: 12px;
-      margin-top: 10px;
-      padding: 0 4px;
-    }
-    #status { min-height: 20px; }
-    .result {
-      margin-top: 30px;
-      display: none;
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      overflow: hidden;
-      background: rgba(17, 21, 26, .85);
-    }
-    .result.show { display: block; }
-    .result-head {
-      display: flex;
-      justify-content: space-between;
-      gap: 16px;
-      align-items: center;
-      padding: 20px;
-      border-bottom: 1px solid var(--border);
-    }
-    .email { font-weight: 800; overflow-wrap: anywhere; }
-    .verdict {
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      padding: 7px 10px;
-      font-size: 12px;
-      white-space: nowrap;
-    }
-    .verdict.good { color: var(--good); }
-    .verdict.bad { color: var(--bad); }
-    .verdict.warn { color: var(--warn); }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 1px;
-      background: var(--border);
-    }
-    .card { background: var(--panel); padding: 20px; min-height: 112px; }
-    .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .09em; margin-bottom: 9px; }
-    .value { font-size: 17px; font-weight: 750; }
-    .value.good { color: var(--good); }
-    .value.bad { color: var(--bad); }
-    .value.warn { color: var(--warn); }
-    .warning {
-      margin: 16px 20px 0;
-      border: 1px solid rgba(255, 212, 121, .25);
-      background: rgba(255, 212, 121, .06);
-      color: var(--warn);
-      border-radius: 12px;
-      padding: 12px 14px;
-      font-size: 13px;
-      line-height: 1.5;
-      display: none;
-    }
-    .warning.show { display: block; }
-    details { margin: 20px; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
-    summary { cursor: pointer; padding: 13px 14px; color: var(--muted); font-size: 13px; }
-    pre { margin: 0; padding: 14px; overflow: auto; border-top: 1px solid var(--border); background: #0c0f13; color: #b9c4d0; font-size: 12px; line-height: 1.55; }
-    footer { margin-top: 30px; color: var(--muted); font-size: 12px; line-height: 1.6; }
-    a { color: var(--accent); text-decoration: none; }
-    @media (max-width: 700px) {
-      main { padding-top: 42px; }
-      .search { flex-direction: column; }
-      button { width: 100%; }
-      .grid { grid-template-columns: repeat(2, 1fr); }
-      .result-head { align-items: flex-start; flex-direction: column; }
-    }
+    :root{color-scheme:dark;--bg:#0b0d10;--panel:#11151a;--border:#252c34;--text:#f4f7fb;--muted:#8d98a5;--good:#79e6a5;--bad:#ff8585;--warn:#ffd479;--accent:#a9c7ff}
+    *{box-sizing:border-box} body{margin:0;min-height:100vh;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:radial-gradient(circle at top,#151a21 0,var(--bg) 38rem);color:var(--text)}
+    main{width:min(920px,calc(100% - 32px));margin:0 auto;padding:72px 0}.eyebrow{display:inline-flex;align-items:center;gap:8px;color:var(--muted);font-size:13px;border:1px solid var(--border);border-radius:999px;padding:7px 10px;background:rgba(17,21,26,.72)}
+    .dot{width:7px;height:7px;border-radius:50%;background:var(--good);box-shadow:0 0 14px var(--good)}h1{font-size:clamp(42px,8vw,78px);letter-spacing:-.055em;line-height:.95;margin:24px 0 16px}.lead{margin:0 0 36px;max-width:720px;color:var(--muted);line-height:1.65;font-size:17px}
+    .search{display:flex;gap:10px;padding:10px;border:1px solid var(--border);background:rgba(17,21,26,.86);border-radius:18px;box-shadow:0 24px 80px rgba(0,0,0,.25)}input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--text);padding:12px 14px;font-size:16px}input::placeholder{color:#646f7c}button{border:0;border-radius:12px;padding:0 20px;min-height:48px;background:var(--text);color:#111;font-weight:750;cursor:pointer}button:disabled{opacity:.5;cursor:wait}
+    .meta{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;color:var(--muted);font-size:12px;margin-top:10px;padding:0 4px}.result{margin-top:30px;display:none;border:1px solid var(--border);border-radius:20px;overflow:hidden;background:rgba(17,21,26,.85)}.result.show{display:block}.result-head{display:flex;justify-content:space-between;gap:16px;align-items:center;padding:20px;border-bottom:1px solid var(--border)}.email{font-weight:800;overflow-wrap:anywhere}.verdict{border:1px solid var(--border);border-radius:999px;padding:7px 10px;font-size:12px;white-space:nowrap}.good{color:var(--good)}.bad{color:var(--bad)}.warn{color:var(--warn)}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border)}.card{background:var(--panel);padding:20px;min-height:112px}.label{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.09em;margin-bottom:9px}.value{font-size:17px;font-weight:750}.warning{margin:16px 20px 0;border:1px solid rgba(255,212,121,.25);background:rgba(255,212,121,.06);color:var(--warn);border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.5;display:none}.warning.show{display:block}details{margin:20px;border:1px solid var(--border);border-radius:12px;overflow:hidden}summary{cursor:pointer;padding:13px 14px;color:var(--muted);font-size:13px}pre{margin:0;padding:14px;overflow:auto;border-top:1px solid var(--border);background:#0c0f13;color:#b9c4d0;font-size:12px;line-height:1.55}footer{margin-top:30px;color:var(--muted);font-size:12px;line-height:1.6}a{color:var(--accent);text-decoration:none}
+    @media(max-width:700px){main{padding-top:42px}.search{flex-direction:column}button{width:100%}.grid{grid-template-columns:repeat(2,1fr)}.result-head{align-items:flex-start;flex-direction:column}}
   </style>
 </head>
 <body>
   <main>
-    <span class="eyebrow"><span class="dot"></span> self-hosted email verifier</span>
+    <span class="eyebrow"><span class="dot"></span> DNS + experimental proxy SMTP</span>
     <h1>Check an email.<br />Know what you can.</h1>
-    <p class="lead">Valid Mail checks syntax, MX records, disposable domains, role accounts, free providers and domain typos. Mailbox-level SMTP probing is optional and depends on your host allowing outbound SMTP.</p>
-
+    <p class="lead">Valid Mail checks syntax, MX records, disposable domains, role accounts, free providers and typos. When a healthy public SOCKS5 proxy is available, it also attempts an SMTP mailbox check without sending an email.</p>
     <form id="form" class="search">
-      <input id="email" name="email" type="email" autocomplete="email" placeholder="name@company.com" required />
+      <input id="email" type="email" autocomplete="email" placeholder="name@company.com" required />
       <button id="submit" type="submit">Verify email</button>
     </form>
-    <div class="meta">
-      <span id="status">Ready</span>
-      <span>API: POST /api/verify</span>
-    </div>
+    <div class="meta"><span id="status">Ready</span><span>API: POST /api/verify</span></div>
 
     <section id="result" class="result" aria-live="polite">
-      <div class="result-head">
-        <div>
-          <div class="label">Email</div>
-          <div id="result-email" class="email"></div>
-        </div>
-        <div id="verdict" class="verdict"></div>
-      </div>
+      <div class="result-head"><div><div class="label">Email</div><div id="result-email" class="email"></div></div><div id="verdict" class="verdict"></div></div>
       <div id="warning" class="warning"></div>
       <div class="grid">
         <div class="card"><div class="label">Syntax</div><div id="syntax" class="value"></div></div>
@@ -197,97 +38,32 @@
         <div class="card"><div class="label">Role account</div><div id="role" class="value"></div></div>
         <div class="card"><div class="label">Free provider</div><div id="free" class="value"></div></div>
         <div class="card"><div class="label">Suggestion</div><div id="suggestion" class="value"></div></div>
-        <div class="card"><div class="label">SMTP check</div><div id="smtp" class="value"></div></div>
+        <div class="card"><div class="label">SMTP route</div><div id="smtp" class="value"></div></div>
         <div class="card"><div class="label">Duration</div><div id="duration" class="value"></div></div>
       </div>
-      <details>
-        <summary>Raw JSON response</summary>
-        <pre id="json"></pre>
-      </details>
+      <details><summary>Raw JSON response</summary><pre id="json"></pre></details>
     </section>
 
-    <footer>
-      A passing syntax + MX check does not prove that a mailbox exists. SMTP verification can provide more signal, but many cloud hosts block port 25 and some mail servers intentionally hide mailbox status.
-    </footer>
+    <footer>Public proxies are untrusted and unstable. This app only uses them for SMTP probing and never sends credentials through them. SMTP results are still not absolute: catch-all domains, anti-abuse systems and recipient-hiding mail servers can return inconclusive answers.</footer>
   </main>
-
   <script>
-    const form = document.getElementById('form');
-    const emailInput = document.getElementById('email');
-    const submit = document.getElementById('submit');
-    const status = document.getElementById('status');
-    const result = document.getElementById('result');
-
-    const setValue = (id, text, tone = '') => {
-      const el = document.getElementById(id);
-      el.textContent = text;
-      el.className = `value ${tone}`.trim();
-    };
-
-    form.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const email = emailInput.value.trim();
-      if (!email) return;
-
-      submit.disabled = true;
-      submit.textContent = 'Checking…';
-      status.textContent = 'Running DNS and domain checks…';
-      result.classList.remove('show');
-
-      try {
-        const response = await fetch('/api/verify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email })
-        });
-        const data = await response.json();
-        if (!response.ok || !data.success) throw new Error(data.error || 'Verification failed');
-
-        const v = data.verification || {};
-        document.getElementById('result-email').textContent = v.email || email;
-        setValue('syntax', v.syntax?.valid ? 'Valid' : 'Invalid', v.syntax?.valid ? 'good' : 'bad');
-        setValue('mx', v.has_mx_records ? 'Found' : 'Not found', v.has_mx_records ? 'good' : 'bad');
-        setValue('reachable', v.reachable || 'unknown', v.reachable === 'yes' ? 'good' : (v.reachable === 'no' ? 'bad' : 'warn'));
-        setValue('disposable', v.disposable ? 'Yes' : 'No', v.disposable ? 'bad' : 'good');
-        setValue('role', v.role_account ? 'Yes' : 'No', v.role_account ? 'warn' : 'good');
-        setValue('free', v.free ? 'Yes' : 'No');
-        setValue('suggestion', v.suggestion || 'None', v.suggestion ? 'warn' : '');
-        setValue('smtp', data.smtp_enabled ? 'Enabled' : 'Disabled', data.smtp_enabled ? 'good' : 'warn');
-        setValue('duration', `${data.duration_ms ?? 0} ms`);
-
-        const verdict = document.getElementById('verdict');
-        if (!v.syntax?.valid || !v.has_mx_records) {
-          verdict.textContent = 'Invalid / unroutable';
-          verdict.className = 'verdict bad';
-        } else if (v.disposable || v.reachable === 'no') {
-          verdict.textContent = 'Risky';
-          verdict.className = 'verdict warn';
-        } else if (v.reachable === 'yes') {
-          verdict.textContent = 'Mailbox reachable';
-          verdict.className = 'verdict good';
-        } else {
-          verdict.textContent = 'Domain checks pass';
-          verdict.className = 'verdict good';
-        }
-
-        const warning = document.getElementById('warning');
-        if (data.warning) {
-          warning.textContent = data.warning;
-          warning.classList.add('show');
-        } else {
-          warning.textContent = '';
-          warning.classList.remove('show');
-        }
-
-        document.getElementById('json').textContent = JSON.stringify(data, null, 2);
-        result.classList.add('show');
-        status.textContent = `Checked ${new Date(data.checked_at).toLocaleTimeString()}`;
-      } catch (error) {
-        status.textContent = error.message || 'Something went wrong';
-      } finally {
-        submit.disabled = false;
-        submit.textContent = 'Verify email';
-      }
+    const form=document.getElementById('form'),emailInput=document.getElementById('email'),submit=document.getElementById('submit'),statusEl=document.getElementById('status'),result=document.getElementById('result');
+    const setValue=(id,text,tone='')=>{const el=document.getElementById(id);el.textContent=text;el.className=`value ${tone}`.trim()};
+    form.addEventListener('submit',async(e)=>{
+      e.preventDefault(); const email=emailInput.value.trim(); if(!email)return;
+      submit.disabled=true;submit.textContent='Checking…';statusEl.textContent='Running domain checks and SMTP when available…';result.classList.remove('show');
+      try{
+        const response=await fetch('/api/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+        const data=await response.json(); if(!response.ok||!data.success)throw new Error(data.error||'Verification failed');
+        const v=data.verification||{};document.getElementById('result-email').textContent=v.email||email;
+        setValue('syntax',v.syntax?.valid?'Valid':'Invalid',v.syntax?.valid?'good':'bad');setValue('mx',v.has_mx_records?'Found':'Not found',v.has_mx_records?'good':'bad');
+        setValue('reachable',v.reachable||'unknown',v.reachable==='yes'?'good':v.reachable==='no'?'bad':'warn');setValue('disposable',v.disposable?'Yes':'No',v.disposable?'bad':'good');
+        setValue('role',v.role_account?'Yes':'No',v.role_account?'warn':'good');setValue('free',v.free?'Yes':'No');setValue('suggestion',v.suggestion||'None',v.suggestion?'warn':'');
+        let smtpText='Disabled',smtpTone='warn';if(data.smtp_attempted&&data.smtp_via_proxy){smtpText=`Proxy SMTP (${data.healthy_proxies||0} healthy)`;smtpTone='good'}else if(data.smtp_attempted){smtpText='Direct SMTP';smtpTone='good'}else if(data.smtp_enabled){smtpText=`Waiting for proxy (${data.healthy_proxies||0} healthy)`}setValue('smtp',smtpText,smtpTone);setValue('duration',`${data.duration_ms??0} ms`);
+        const verdict=document.getElementById('verdict');if(!v.syntax?.valid||!v.has_mx_records){verdict.textContent='Invalid / unroutable';verdict.className='verdict bad'}else if(v.disposable||v.reachable==='no'){verdict.textContent='Risky';verdict.className='verdict warn'}else if(v.reachable==='yes'){verdict.textContent='Mailbox reachable';verdict.className='verdict good'}else{verdict.textContent='Domain checks pass';verdict.className='verdict good'}
+        const warning=document.getElementById('warning');if(data.warning){warning.textContent=data.warning;warning.classList.add('show')}else{warning.textContent='';warning.classList.remove('show')}
+        document.getElementById('json').textContent=JSON.stringify(data,null,2);result.classList.add('show');statusEl.textContent=`Checked ${new Date(data.checked_at).toLocaleTimeString()}`;
+      }catch(err){statusEl.textContent=err.message||'Something went wrong'}finally{submit.disabled=false;submit.textContent='Verify email'}
     });
   </script>
 </body>

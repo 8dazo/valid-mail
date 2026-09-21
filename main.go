@@ -17,8 +17,16 @@ import (
 var indexHTML []byte
 
 type application struct {
-	verifier    *emailverifier.Verifier
-	smtpEnabled bool
+	baseVerifier     *emailverifier.Verifier
+	directSMTP       bool
+	proxySMTP        bool
+	proxyPool        *proxyPool
+	fromEmail        string
+	helloName        string
+	connectTimeout   time.Duration
+	operationTimeout time.Duration
+	maxSMTPAttempts  int
+	smtpSlots        chan struct{}
 }
 
 type verifyRequest struct {
@@ -26,28 +34,41 @@ type verifyRequest struct {
 }
 
 type verifyResponse struct {
-	Success     bool                  `json:"success"`
-	Verification *emailverifier.Result `json:"verification,omitempty"`
-	SMTPEnabled bool                  `json:"smtp_enabled"`
-	Warning     string                `json:"warning,omitempty"`
-	CheckedAt   time.Time             `json:"checked_at"`
-	DurationMS  int64                 `json:"duration_ms"`
+	Success        bool                  `json:"success"`
+	Verification   *emailverifier.Result `json:"verification,omitempty"`
+	SMTPEnabled    bool                  `json:"smtp_enabled"`
+	SMTPAttempted  bool                  `json:"smtp_attempted"`
+	SMTPViaProxy   bool                  `json:"smtp_via_proxy"`
+	HealthyProxies int                   `json:"healthy_proxies,omitempty"`
+	Warning        string                `json:"warning,omitempty"`
+	CheckedAt      time.Time             `json:"checked_at"`
+	DurationMS     int64                 `json:"duration_ms"`
 }
 
 func main() {
-	smtpEnabled := envBool("ENABLE_SMTP", false)
-	verifier := emailverifier.NewVerifier().EnableDomainSuggest()
+	directSMTP := envBool("ENABLE_SMTP", false)
+	proxySMTP := envBool("ENABLE_PROXY_SMTP", true)
+	baseVerifier := emailverifier.NewVerifier().EnableDomainSuggest()
 
 	if envBool("AUTO_UPDATE_DISPOSABLE", false) {
-		verifier.EnableAutoUpdateDisposable()
-	}
-	if smtpEnabled {
-		verifier.EnableSMTPCheck()
+		baseVerifier.EnableAutoUpdateDisposable()
 	}
 
 	app := &application{
-		verifier:    verifier,
-		smtpEnabled: smtpEnabled,
+		baseVerifier:     baseVerifier,
+		directSMTP:       directSMTP,
+		proxySMTP:        proxySMTP,
+		fromEmail:        envString("SMTP_FROM_EMAIL", ""),
+		helloName:        envString("SMTP_HELLO_NAME", ""),
+		connectTimeout:   envDuration("SMTP_CONNECT_TIMEOUT", 7*time.Second, time.Second, 20*time.Second),
+		operationTimeout: envDuration("SMTP_OPERATION_TIMEOUT", 7*time.Second, time.Second, 20*time.Second),
+		maxSMTPAttempts:  envInt("SMTP_MAX_ATTEMPTS", 2, 1, 4),
+		smtpSlots:        make(chan struct{}, envInt("SMTP_MAX_CONCURRENCY", 4, 1, 20)),
+	}
+
+	if proxySMTP {
+		app.proxyPool = newProxyPool()
+		go app.proxyPool.run()
 	}
 
 	mux := http.NewServeMux()
@@ -69,7 +90,7 @@ func main() {
 		IdleTimeout:       60 * time.Second,
 	}
 
-	log.Printf("valid-mail listening on :%s (smtp=%t)", port, smtpEnabled)
+	log.Printf("valid-mail listening on :%s (direct_smtp=%t proxy_smtp=%t)", port, directSMTP, proxySMTP)
 	log.Fatal(server.ListenAndServe())
 }
 
@@ -97,12 +118,18 @@ func (app *application) handleHealth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]any{
-		"ok":           true,
-		"service":      "valid-mail",
-		"smtp_enabled": app.smtpEnabled,
-		"time":         time.Now().UTC(),
-	})
+	payload := map[string]any{
+		"ok":                 true,
+		"service":            "valid-mail",
+		"smtp_enabled":       app.directSMTP || app.proxySMTP,
+		"direct_smtp":        app.directSMTP,
+		"proxy_smtp_enabled": app.proxySMTP,
+		"time":               time.Now().UTC(),
+	}
+	if app.proxyPool != nil {
+		payload["proxy_pool"] = app.proxyPool.stats()
+	}
+	writeJSON(w, http.StatusOK, payload)
 }
 
 func (app *application) handleVerify(w http.ResponseWriter, r *http.Request) {
@@ -155,13 +182,11 @@ func (app *application) handleVerify(w http.ResponseWriter, r *http.Request) {
 	}
 
 	started := time.Now()
-	result, err := app.verifier.Verify(email)
-	duration := time.Since(started)
-
+	result, baseErr := app.baseVerifier.Verify(email)
 	if result == nil {
 		message := "verification failed"
-		if err != nil {
-			message = err.Error()
+		if baseErr != nil {
+			message = baseErr.Error()
 		}
 		writeJSON(w, http.StatusBadGateway, map[string]any{
 			"success": false,
@@ -173,16 +198,108 @@ func (app *application) handleVerify(w http.ResponseWriter, r *http.Request) {
 	response := verifyResponse{
 		Success:      true,
 		Verification: result,
-		SMTPEnabled:  app.smtpEnabled,
+		SMTPEnabled:  app.directSMTP || app.proxySMTP,
 		CheckedAt:    time.Now().UTC(),
-		DurationMS:   duration.Milliseconds(),
 	}
-	if err != nil {
-		// The verifier can return useful partial results alongside DNS/SMTP errors.
-		response.Warning = err.Error()
+	if app.proxyPool != nil {
+		response.HealthyProxies = app.proxyPool.stats().Healthy
+	}
+	if baseErr != nil {
+		response.Warning = baseErr.Error()
 	}
 
+	if shouldAttemptSMTP(result) && (app.directSMTP || app.proxySMTP) {
+		select {
+		case app.smtpSlots <- struct{}{}:
+			defer func() { <-app.smtpSlots }()
+		case <-r.Context().Done():
+			response.Warning = "request cancelled before SMTP verification"
+			response.DurationMS = time.Since(started).Milliseconds()
+			writeJSON(w, http.StatusOK, response)
+			return
+		}
+
+		if app.proxySMTP && app.proxyPool != nil {
+			smtpResult, attempted, err := app.verifyThroughProxy(email)
+			response.SMTPAttempted = attempted
+			response.SMTPViaProxy = attempted
+			response.HealthyProxies = app.proxyPool.stats().Healthy
+			if smtpResult != nil && err == nil {
+				response.Verification = smtpResult
+				response.Warning = ""
+			} else if attempted {
+				response.Warning = "SMTP through public SOCKS5 proxies was inconclusive; showing domain-level checks instead."
+			} else if !app.directSMTP {
+				response.Warning = "No healthy SMTP-capable public SOCKS5 proxy is available right now; showing domain-level checks instead."
+				app.proxyPool.triggerRefresh()
+			}
+		}
+
+		if !response.SMTPAttempted && app.directSMTP {
+			response.SMTPAttempted = true
+			smtpResult, err := app.smtpVerifier("").Verify(email)
+			if smtpResult != nil && err == nil {
+				response.Verification = smtpResult
+				response.Warning = ""
+			} else {
+				response.Warning = "Direct SMTP verification failed; showing domain-level checks instead."
+			}
+		}
+	}
+
+	response.CheckedAt = time.Now().UTC()
+	response.DurationMS = time.Since(started).Milliseconds()
 	writeJSON(w, http.StatusOK, response)
+}
+
+func (app *application) verifyThroughProxy(email string) (*emailverifier.Result, bool, error) {
+	exclude := make(map[string]struct{})
+	var lastResult *emailverifier.Result
+	var lastErr error
+
+	for attempt := 0; attempt < app.maxSMTPAttempts; attempt++ {
+		proxyURI := app.proxyPool.nextProxy(exclude)
+		if proxyURI == "" {
+			break
+		}
+		exclude[proxyURI] = struct{}{}
+
+		result, err := app.smtpVerifier(proxyURI).Verify(email)
+		if result != nil {
+			lastResult = result
+		}
+		if err == nil {
+			return result, true, nil
+		}
+		lastErr = err
+		if result == nil || result.SMTP == nil {
+			app.proxyPool.markBad(proxyURI)
+		}
+	}
+
+	return lastResult, len(exclude) > 0, lastErr
+}
+
+func (app *application) smtpVerifier(proxyURI string) *emailverifier.Verifier {
+	verifier := emailverifier.NewVerifier().
+		EnableDomainSuggest().
+		EnableSMTPCheck().
+		ConnectTimeout(app.connectTimeout).
+		OperationTimeout(app.operationTimeout)
+	if proxyURI != "" {
+		verifier.Proxy(proxyURI)
+	}
+	if app.fromEmail != "" {
+		verifier.FromEmail(app.fromEmail)
+	}
+	if app.helloName != "" {
+		verifier.HelloName(app.helloName)
+	}
+	return verifier
+}
+
+func shouldAttemptSMTP(result *emailverifier.Result) bool {
+	return result != nil && result.Syntax.Valid && result.HasMxRecords && !result.Disposable
 }
 
 func writeJSON(w http.ResponseWriter, status int, value any) {
@@ -209,6 +326,38 @@ func envBool(key string, fallback bool) bool {
 	}
 	parsed, err := strconv.ParseBool(value)
 	if err != nil {
+		return fallback
+	}
+	return parsed
+}
+
+func envString(key, fallback string) string {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+	return value
+}
+
+func envInt(key string, fallback, min, max int) int {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+	parsed, err := strconv.Atoi(value)
+	if err != nil || parsed < min || parsed > max {
+		return fallback
+	}
+	return parsed
+}
+
+func envDuration(key string, fallback, min, max time.Duration) time.Duration {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+	parsed, err := time.ParseDuration(value)
+	if err != nil || parsed < min || parsed > max {
 		return fallback
 	}
 	return parsed
