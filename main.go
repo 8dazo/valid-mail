@@ -83,6 +83,7 @@ func main() {
 	mux.HandleFunc("/api/verify", app.handleVerify)
 	mux.HandleFunc("/api/find-email", app.handleFindEmail)
 	mux.HandleFunc("/api/find-work-email", app.handleFindWorkEmail)
+	mux.HandleFunc("/api/find-linkedin-email", app.handleFindLinkedInEmail)
 
 	port := strings.TrimSpace(os.Getenv("PORT"))
 	if port == "" {
