@@ -2,7 +2,10 @@ package main
 
 import (
 	"context"
+	"html"
 	"log"
+	"net/url"
+	"strings"
 	"time"
 )
 
@@ -12,36 +15,50 @@ func init() {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
-		providers := []struct {
-			name string
-			fn   func(context.Context, string) ([]publicSearchHit, error)
-		}{
-			{"bing_html", searchBingHTMLLinkedIn},
-			{"duckduckgo", searchDuckDuckGoLinkedIn},
-		}
-		for _, provider := range providers {
-			hits, err := provider.fn(ctx, "Patrick Collison")
-			if err != nil {
-				log.Printf("LINKEDIN_HITS %s failed: %v", provider.name, err)
-				continue
+		client := newSafeEnrichClient()
+		query := `site:linkedin.com/in/ "Patrick Collison"`
+		searchURL := "https://www.bing.com/search?q=" + url.QueryEscape(query)
+		body, _, finalURL, err := fetchPublicText(ctx, client, searchURL)
+		if err != nil {
+			log.Printf("BING_HREF fetch failed: %v", err)
+		} else {
+			logged := 0
+			for _, match := range resultAnchorRE.FindAllStringSubmatch(body, -1) {
+				if len(match) != 3 {
+					continue
+				}
+				href := html.UnescapeString(strings.TrimSpace(match[1]))
+				text := strings.Join(strings.Fields(html.UnescapeString(stripTagRE.ReplaceAllString(match[2], " "))), " ")
+				lower := strings.ToLower(href + " " + text)
+				if !strings.Contains(lower, "ck/a") && !strings.Contains(lower, "linkedin") && !strings.Contains(lower, "u=a1") && !strings.Contains(strings.ToLower(text), "patrick") {
+					continue
+				}
+				decoded := decodeSearchResultURL(href)
+				if len(href) > 500 { href = href[:500] }
+				if len(text) > 220 { text = text[:220] }
+				log.Printf("BING_HREF #%d href=%q text=%q decoded=%q", logged+1, href, text, decoded)
+				logged++
+				if logged >= 15 { break }
 			}
-			log.Printf("LINKEDIN_HITS %s count=%d", provider.name, len(hits))
+			log.Printf("BING_HREF_SUMMARY final=%s anchors_logged=%d", finalURL, logged)
+		}
+
+		hits, err := searchBingHTMLLinkedIn(ctx, "Patrick Collison")
+		if err != nil {
+			log.Printf("LINKEDIN_HITS bing_html failed: %v", err)
+		} else {
+			log.Printf("LINKEDIN_HITS bing_html count=%d", len(hits))
 			for i, hit := range hits {
 				text := hit.Text
-				if len(text) > 220 {
-					text = text[:220]
-				}
+				if len(text) > 220 { text = text[:220] }
 				profile := scoreDiscoveredProfile("Patrick Collison", hit, nil)
-				log.Printf("LINKEDIN_HIT %s #%d url=%s text=%q company_guess=%q score=%d", provider.name, i+1, hit.URL, text, profile.Company, profile.Score)
+				log.Printf("LINKEDIN_HIT bing_html #%d url=%s text=%q company_guess=%q score=%d", i+1, hit.URL, text, profile.Company, profile.Score)
 			}
 		}
 
 		resolution, err := discoverLinkedInProfileByName(ctx, "Patrick Collison")
 		if err != nil {
 			log.Printf("LINKEDIN_SMOKETEST failed: err=%v alternatives=%d confidence=%d ambiguous=%t method=%s", err, len(resolution.Alternatives), resolution.Confidence, resolution.Ambiguous, resolution.Method)
-			for i, alt := range resolution.Alternatives {
-				log.Printf("LINKEDIN_ALT #%d url=%s company=%q score=%d text=%q", i+1, alt.URL, alt.Company, alt.Score, alt.SearchText)
-			}
 			return
 		}
 		if resolution.Selected == nil {
