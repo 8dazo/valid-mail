@@ -84,6 +84,7 @@ func main() {
 	mux.HandleFunc("/api/find-email", app.handleFindEmail)
 	mux.HandleFunc("/api/find-work-email", app.handleFindWorkEmail)
 	mux.HandleFunc("/api/find-linkedin-email", app.handleFindLinkedInEmail)
+	mux.HandleFunc("/api/find-by-name", app.handleFindByName)
 
 	port := strings.TrimSpace(os.Getenv("PORT"))
 	if port == "" {
