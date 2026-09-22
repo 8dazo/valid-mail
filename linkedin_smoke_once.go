@@ -24,8 +24,6 @@ func init() {
 			{"duckduckgo", "https://html.duckduckgo.com/html/?q=" + url.QueryEscape(query)},
 			{"bing_rss", "https://www.bing.com/search?format=rss&q=" + url.QueryEscape(query)},
 			{"bing_html", "https://www.bing.com/search?q=" + url.QueryEscape(query)},
-			{"brave_html", "https://search.brave.com/search?q=" + url.QueryEscape(query) + "&source=web"},
-			{"yahoo_html", "https://search.yahoo.com/search?p=" + url.QueryEscape(query)},
 		}
 		for _, check := range checks {
 			body, contentType, finalURL, err := fetchPublicText(ctx, client, check.url)
@@ -36,12 +34,36 @@ func init() {
 			log.Printf("LINKEDIN_NETCHECK %s ok: type=%q final=%s bytes=%d linkedin_hits=%d items=%d", check.name, contentType, finalURL, len(body), strings.Count(strings.ToLower(body), "linkedin.com/in"), strings.Count(strings.ToLower(body), "<item>"))
 		}
 
-		signal := fetchLinkedInPublicSignalForDiscovery(ctx, "https://www.linkedin.com/in/patrickcollison")
-		log.Printf("LINKEDIN_PROFILECHECK status=%s name=%q company=%q headline_len=%d evidence=%v", signal.Status, signal.Name, signal.Company, len(signal.Headline), signal.Evidence)
+		providers := []struct {
+			name string
+			fn   func(context.Context, string) ([]publicSearchHit, error)
+		}{
+			{"bing_html", searchBingHTMLLinkedIn},
+			{"bing_rss", searchBingRSSLinkedIn},
+			{"duckduckgo", searchDuckDuckGoLinkedIn},
+		}
+		for _, provider := range providers {
+			hits, err := provider.fn(ctx, "Patrick Collison")
+			if err != nil {
+				log.Printf("LINKEDIN_HITS %s failed: %v", provider.name, err)
+				continue
+			}
+			log.Printf("LINKEDIN_HITS %s count=%d", provider.name, len(hits))
+			for i, hit := range hits {
+				text := hit.Text
+				if len(text) > 220 {
+					text = text[:220]
+				}
+				log.Printf("LINKEDIN_HIT %s #%d url=%s text=%q company_guess=%q score=%d", provider.name, i+1, hit.URL, text, companyFromSearchText("Patrick Collison", hit.Text), scoreDiscoveredProfile("Patrick Collison", hit, nil).Score)
+			}
+		}
 
 		resolution, err := discoverLinkedInProfileByName(ctx, "Patrick Collison")
 		if err != nil {
 			log.Printf("LINKEDIN_SMOKETEST failed: err=%v alternatives=%d confidence=%d ambiguous=%t method=%s", err, len(resolution.Alternatives), resolution.Confidence, resolution.Ambiguous, resolution.Method)
+			for i, alt := range resolution.Alternatives {
+				log.Printf("LINKEDIN_ALT #%d url=%s company=%q score=%d text=%q", i+1, alt.URL, alt.Company, alt.Score, alt.SearchText)
+			}
 			return
 		}
 		if resolution.Selected == nil {
