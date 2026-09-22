@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Find Work Email · Valid Mail</title>
-  <meta name="description" content="Find likely work-email candidates from a person's name, company, and optional public LinkedIn profile using public company pages and email-pattern inference." />
+  <meta name="description" content="Find likely work-email candidates from just a person's name by discovering public LinkedIn profiles, then enriching through public company data and email-pattern inference." />
   <style>
     :root{color-scheme:dark;--bg:#0b0d10;--panel:#11151a;--panel2:#151a20;--border:#252c34;--text:#f4f7fb;--muted:#8d98a5;--good:#79e6a5;--warn:#ffd479;--bad:#ff8585;--accent:#a9c7ff}
     *{box-sizing:border-box}body{margin:0;min-height:100vh;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:radial-gradient(circle at top,#151a21 0,var(--bg) 38rem);color:var(--text)}
@@ -27,19 +27,19 @@
       <nav class="nav"><a href="/">Verify email</a><a class="active" href="/finder">Find work email</a></nav>
     </div>
 
-    <span class="eyebrow"><span class="dot"></span> public-data email discovery</span>
+    <span class="eyebrow"><span class="dot"></span> name → profile → work email</span>
     <h1>Find a likely<br />work email.</h1>
-    <p class="lead"><strong>Name + company is enough.</strong> Optionally add a public LinkedIn profile URL. Valid Mail can use public LinkedIn metadata as an identity signal, then resolves a likely official domain, checks public company pages for real email examples, learns the company's naming pattern, generates candidates, and runs SMTP-independent validity checks.</p>
+    <p class="lead"><strong>Just a name is enough to start.</strong> Valid Mail searches the public web for likely LinkedIn profiles, selects a strong identity match, extracts public company context, resolves the official company domain, learns its observed email pattern, and ranks likely work-email candidates. Company, domain, or a LinkedIn URL are optional hints for faster disambiguation.</p>
 
     <form id="finder" class="finder">
       <div class="fields">
-        <div class="field"><label>Person</label><input id="name" autocomplete="name" placeholder="Jane Smith" /></div>
-        <div class="field"><label>Company</label><input id="company" placeholder="Acme Labs" /></div>
-        <div class="field"><label>Domain · optional</label><input id="domain" inputmode="url" placeholder="acme.com" /></div>
+        <div class="field"><label>Person · required</label><input id="name" autocomplete="name" placeholder="Jane Smith" required /></div>
+        <div class="field"><label>Company · optional hint</label><input id="company" placeholder="Acme Labs" /></div>
+        <div class="field"><label>Domain · optional hint</label><input id="domain" inputmode="url" placeholder="acme.com" /></div>
         <button id="submit" type="submit">Find email</button>
       </div>
-      <div class="linkedin-row field"><label>LinkedIn profile · optional</label><input id="linkedin" inputmode="url" placeholder="https://www.linkedin.com/in/jane-doe/" /></div>
-      <div class="hint"><span id="status">Ready</span><span>Public LinkedIn metadata only · no login/challenge bypass</span></div>
+      <div class="linkedin-row field"><label>LinkedIn profile · optional direct hint</label><input id="linkedin" inputmode="url" placeholder="https://www.linkedin.com/in/jane-doe/" /></div>
+      <div class="hint"><span id="status">Ready</span><span>Public search/profile metadata only · login/challenge bypass is not used</span></div>
     </form>
 
     <section id="result" class="result" aria-live="polite">
@@ -68,24 +68,29 @@
     form.addEventListener('submit',async e=>{
       e.preventDefault();
       const name=document.getElementById('name').value.trim(),company=document.getElementById('company').value.trim(),domain=document.getElementById('domain').value.trim(),linkedinUrl=document.getElementById('linkedin').value.trim();
-      if(!linkedinUrl&&(!name||(!company&&!domain))){statusEl.textContent='Enter a person and either company/domain, or provide a LinkedIn profile URL.';return}
-      submit.disabled=true;submit.textContent='Finding…';statusEl.textContent=linkedinUrl?'Reading public LinkedIn metadata, then company sources…':domain?'Reading public company pages…':'Resolving company domain, then reading public pages…';result.classList.remove('show');
+      if(!name){statusEl.textContent='Enter a person name.';return}
+      submit.disabled=true;submit.textContent='Finding…';result.classList.remove('show');
+      let endpoint='/api/find-by-name',payload={name};
+      if(linkedinUrl){endpoint='/api/find-linkedin-email';payload={linkedin_url:linkedinUrl,name,company,domain};statusEl.textContent='Reading the public LinkedIn profile, then enriching company sources…'}
+      else if(company||domain){endpoint='/api/find-work-email';payload={name,company,domain};statusEl.textContent=domain?'Using the provided domain and reading public company pages…':'Resolving the company domain, then reading public pages…'}
+      else{statusEl.textContent='Searching public LinkedIn profiles, matching identity, then enriching company sources…'}
       try{
-        const endpoint=linkedinUrl?'/api/find-linkedin-email':'/api/find-work-email';
-        const payload=linkedinUrl?{linkedin_url:linkedinUrl,name,company,domain}:{name,company,domain};
         const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-        const data=await response.json();if(!response.ok||!data.success)throw new Error(data.error||'Could not find email candidates');
+        const raw=await response.json();
+        if(!response.ok||!raw.success)throw new Error(raw.error||'Could not find email candidates');
+        const data=raw.email||raw;
+        const profileResolution=raw.profile_resolution||{};
         const resolution=data.domain_resolution||{};
         document.getElementById('resolved-domain').textContent=data.domain||'—';
         document.getElementById('resolved-method').textContent=title(resolution.method||'provided domain');
         const confidence=Number(resolution.confidence||0);const badge=document.getElementById('domain-confidence');badge.textContent=`${confidence}% domain confidence`;badge.className=`badge ${confidence>=80?'good':confidence>=55?'warn':'bad'}`;
-        const linkedinBox=document.getElementById('linkedin-signal');const li=data.linkedin;
-        if(li){const tone=li.status==='fetched'?'good':li.status==='blocked'?'warn':'warn';const details=[li.name,li.headline,li.company].filter(Boolean).map(esc).join(' · ');linkedinBox.innerHTML=`<strong class="${tone}">LinkedIn: ${esc(title(li.status))}</strong>${details?` — ${details}`:''}`;linkedinBox.classList.add('show')}else{linkedinBox.textContent='';linkedinBox.classList.remove('show')}
+        const linkedinBox=document.getElementById('linkedin-signal');const li=data.linkedin||profileResolution.selected?.signal;const selected=profileResolution.selected;
+        if(selected||li){const status=li?.status||selected?.status||'fetched';const tone=status==='fetched'?'good':'warn';const details=[selected?.name||li?.name,selected?.headline||li?.headline,selected?.company||li?.company].filter(Boolean).map(esc).join(' · ');const score=selected?.score?` · ${selected.score}% identity match`:'';linkedinBox.innerHTML=`<strong class="${tone}">LinkedIn: ${esc(title(status))}</strong>${score}${details?` — ${details}`:''}`;linkedinBox.classList.add('show')}else{linkedinBox.textContent='';linkedinBox.classList.remove('show')}
         document.getElementById('observed').textContent=String(data.observed_email_count??0);document.getElementById('pages').textContent=String(data.pages_fetched??0);document.getElementById('pattern').textContent=title(data.pattern||'unknown');document.getElementById('pattern-confidence').textContent=`${data.pattern_confidence??0}%`;
         const list=document.getElementById('candidates');const candidates=data.candidates||[];
         if(!candidates.length){list.innerHTML='<div class="empty">No sufficiently plausible candidates were generated from the available public signals.</div>'}
         else{list.innerHTML=candidates.map((c,i)=>{const validity=c.validity||{};const sources=(c.sources||[]).slice(0,2);return `<div class="candidate"><div><div class="candidate-email">${esc(c.email)}</div><div class="small">#${i+1} · ${esc(title(c.pattern))}${c.found_publicly?' · found publicly':''}</div>${sources.length?`<div class="source-list">${sources.map(s=>esc(s)).join('<br>')}</div>`:''}</div><div><div class="label">Confidence</div><div class="confidence ${c.confidence>=80?'good':c.confidence>=55?'warn':''}">${c.confidence}%</div></div><div><div class="label">Validity</div><div class="value ${validity.status==='valid'?'good':validity.status==='invalid'?'bad':'warn'}">${esc(title(validity.status||'unknown'))}</div></div><div><div class="label">Evidence</div><div class="small">${c.found_publicly?'Exact address on public company page':'Generated from company pattern'}</div></div></div>`}).join('')}
-        document.getElementById('note').textContent=data.note||'';document.getElementById('json').textContent=JSON.stringify(data,null,2);result.classList.add('show');statusEl.textContent=`Finished ${new Date(data.checked_at).toLocaleTimeString()}`;
+        document.getElementById('note').textContent=raw.note||data.note||'';document.getElementById('json').textContent=JSON.stringify(raw,null,2);result.classList.add('show');statusEl.textContent=`Finished ${new Date(raw.checked_at||data.checked_at).toLocaleTimeString()}`;
       }catch(err){statusEl.textContent=err.message||'Finder failed'}finally{submit.disabled=false;submit.textContent='Find email'}
     });
   </script>
