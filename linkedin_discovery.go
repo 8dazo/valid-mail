@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"html"
 	"net/http"
@@ -138,7 +139,7 @@ func (app *application) handleFindByName(w http.ResponseWriter, r *http.Request)
 		Success: true,
 		Profile: resolution,
 		Email:   emailResult,
-		Note: "The service first discovers public LinkedIn profile URLs from LinkedIn's public people directory, with public web search as a fallback. It then uses only publicly accessible profile metadata as an identity/company signal before running the existing company-domain and email-pattern enrichment pipeline. Login walls or access challenges are not bypassed.",
+		Note: "The service first discovers public LinkedIn profile URLs from LinkedIn's public directory, Bing's public RSS search, or public web search. It then uses only publicly accessible profile metadata as an identity/company signal before running the existing company-domain and email-pattern enrichment pipeline. Login walls or access challenges are not bypassed.",
 		CheckedAt: time.Now().UTC(),
 	})
 }
@@ -167,7 +168,7 @@ func discoverLinkedInProfileByName(ctx context.Context, name string) (linkedInPr
 			}
 			defer func() { <-sem }()
 
-			signal := fetchLinkedInPublicSignal(ctx, hit.URL)
+			signal := fetchLinkedInPublicSignalForDiscovery(ctx, hit.URL)
 			profiles[i] = scoreDiscoveredProfile(name, hit, signal)
 		}()
 	}
@@ -212,10 +213,13 @@ func searchPublicLinkedInProfiles(ctx context.Context, name string) ([]publicSea
 	if hits, err := searchLinkedInPublicDirectory(ctx, name); err == nil && len(hits) > 0 {
 		return hits, "linkedin_public_directory", nil
 	}
+	if hits, err := searchBingRSSLinkedIn(ctx, name); err == nil && len(hits) > 0 {
+		return hits, "bing_rss_search", nil
+	}
 	if hits, err := searchDuckDuckGoLinkedIn(ctx, name); err == nil && len(hits) > 0 {
 		return hits, "public_web_search", nil
 	}
-	return nil, "linkedin_public_directory", errors.New("public LinkedIn profile discovery was unavailable")
+	return nil, "public_search_fallbacks", errors.New("public LinkedIn profile discovery was unavailable")
 }
 
 func searchLinkedInPublicDirectory(ctx context.Context, name string) ([]publicSearchHit, error) {
@@ -235,6 +239,48 @@ func searchLinkedInPublicDirectory(ctx context.Context, name string) ([]publicSe
 		return nil, errors.New("LinkedIn directory returned an unsupported response")
 	}
 	return extractLinkedInHits(finalURL, body, maxLinkedInDiscoveryCandidates), nil
+}
+
+type bingRSS struct {
+	Channel struct {
+		Items []struct {
+			Title string `xml:"title"`
+			Link  string `xml:"link"`
+			Description string `xml:"description"`
+		} `xml:"item"`
+	} `xml:"channel"`
+}
+
+func searchBingRSSLinkedIn(ctx context.Context, name string) ([]publicSearchHit, error) {
+	query := `site:linkedin.com/in/ "` + name + `"`
+	searchURL := "https://www.bing.com/search?format=rss&q=" + url.QueryEscape(query)
+	client := newSafeEnrichClient()
+	body, _, _, err := fetchPublicText(ctx, client, searchURL)
+	if err != nil {
+		return nil, err
+	}
+	var feed bingRSS
+	if err := xml.Unmarshal([]byte(body), &feed); err != nil {
+		return nil, err
+	}
+	seen := make(map[string]struct{})
+	var hits []publicSearchHit
+	for _, item := range feed.Channel.Items {
+		normalized, err := normalizeLinkedInProfileURL(strings.TrimSpace(item.Link))
+		if err != nil {
+			continue
+		}
+		if _, ok := seen[normalized]; ok {
+			continue
+		}
+		seen[normalized] = struct{}{}
+		text := strings.Join(strings.Fields(stripTagRE.ReplaceAllString(html.UnescapeString(item.Title+" "+item.Description), " ")), " ")
+		hits = append(hits, publicSearchHit{URL: normalized, Text: text})
+		if len(hits) >= maxLinkedInDiscoveryCandidates {
+			break
+		}
+	}
+	return hits, nil
 }
 
 func searchDuckDuckGoLinkedIn(ctx context.Context, name string) ([]publicSearchHit, error) {
