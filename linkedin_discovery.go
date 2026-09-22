@@ -21,14 +21,14 @@ type findByNameRequest struct {
 }
 
 type discoveredLinkedInProfile struct {
-	URL        string                  `json:"url"`
-	Score      int                     `json:"score"`
-	Name       string                  `json:"name,omitempty"`
-	Headline   string                  `json:"headline,omitempty"`
-	Company    string                  `json:"company,omitempty"`
-	Status     string                  `json:"status"`
-	SearchText string                  `json:"search_text,omitempty"`
-	Signal     *linkedInPublicSignal   `json:"signal,omitempty"`
+	URL        string                `json:"url"`
+	Score      int                   `json:"score"`
+	Name       string                `json:"name,omitempty"`
+	Headline   string                `json:"headline,omitempty"`
+	Company    string                `json:"company,omitempty"`
+	Status     string                `json:"status"`
+	SearchText string                `json:"search_text,omitempty"`
+	Signal     *linkedInPublicSignal `json:"signal,omitempty"`
 }
 
 type linkedInProfileResolution struct {
@@ -40,11 +40,11 @@ type linkedInProfileResolution struct {
 }
 
 type findByNameResponse struct {
-	Success bool                       `json:"success"`
-	Profile linkedInProfileResolution  `json:"profile_resolution"`
-	Email   *findLinkedInEmailResponse `json:"email,omitempty"`
-	Note    string                     `json:"note"`
-	CheckedAt time.Time                `json:"checked_at"`
+	Success   bool                       `json:"success"`
+	Profile   linkedInProfileResolution  `json:"profile_resolution"`
+	Email     *findLinkedInEmailResponse `json:"email,omitempty"`
+	Note      string                     `json:"note"`
+	CheckedAt time.Time                  `json:"checked_at"`
 }
 
 type publicSearchHit struct {
@@ -91,16 +91,16 @@ func (app *application) handleFindByName(w http.ResponseWriter, r *http.Request)
 	resolution, err := discoverLinkedInProfileByName(r.Context(), name)
 	if err != nil {
 		writeJSON(w, http.StatusUnprocessableEntity, map[string]any{
-			"success": false,
-			"error": err.Error(),
+			"success":            false,
+			"error":              err.Error(),
 			"profile_resolution": resolution,
 		})
 		return
 	}
 	if resolution.Selected == nil {
 		writeJSON(w, http.StatusUnprocessableEntity, map[string]any{
-			"success": false,
-			"error": "no sufficiently strong public LinkedIn profile match was found",
+			"success":            false,
+			"error":              "no sufficiently strong public LinkedIn profile match was found",
 			"profile_resolution": resolution,
 		})
 		return
@@ -109,16 +109,16 @@ func (app *application) handleFindByName(w http.ResponseWriter, r *http.Request)
 	selected := resolution.Selected
 	if resolution.Ambiguous {
 		writeJSON(w, http.StatusConflict, map[string]any{
-			"success": false,
-			"error": "multiple LinkedIn profiles matched this name too closely; provide a company, domain, or LinkedIn URL to disambiguate",
+			"success":            false,
+			"error":              "multiple LinkedIn profiles matched this name too closely; provide a company, domain, or LinkedIn URL to disambiguate",
 			"profile_resolution": resolution,
 		})
 		return
 	}
 	if selected.Company == "" {
 		writeJSON(w, http.StatusUnprocessableEntity, map[string]any{
-			"success": false,
-			"error": "the matched public LinkedIn profile did not expose a usable current company",
+			"success":            false,
+			"error":              "the matched public LinkedIn profile did not expose a usable current company",
 			"profile_resolution": resolution,
 		})
 		return
@@ -127,8 +127,8 @@ func (app *application) handleFindByName(w http.ResponseWriter, r *http.Request)
 	emailResult, enrichErr := app.enrichDiscoveredLinkedIn(r.Context(), name, *selected)
 	if enrichErr != nil {
 		writeJSON(w, http.StatusUnprocessableEntity, map[string]any{
-			"success": false,
-			"error": enrichErr.Error(),
+			"success":            false,
+			"error":              enrichErr.Error(),
 			"profile_resolution": resolution,
 		})
 		return
@@ -137,19 +137,19 @@ func (app *application) handleFindByName(w http.ResponseWriter, r *http.Request)
 	writeJSON(w, http.StatusOK, findByNameResponse{
 		Success: true,
 		Profile: resolution,
-		Email: emailResult,
-		Note: "The service first discovers public LinkedIn profile URLs from public web search, then uses only publicly accessible profile metadata as an identity/company signal before running the existing company-domain and email-pattern enrichment pipeline. Login walls or access challenges are not bypassed.",
+		Email:   emailResult,
+		Note: "The service first discovers public LinkedIn profile URLs from LinkedIn's public people directory, with public web search as a fallback. It then uses only publicly accessible profile metadata as an identity/company signal before running the existing company-domain and email-pattern enrichment pipeline. Login walls or access challenges are not bypassed.",
 		CheckedAt: time.Now().UTC(),
 	})
 }
 
 func discoverLinkedInProfileByName(ctx context.Context, name string) (linkedInProfileResolution, error) {
-	hits, err := searchPublicLinkedInProfiles(ctx, name)
+	hits, method, err := searchPublicLinkedInProfiles(ctx, name)
 	if err != nil {
-		return linkedInProfileResolution{Method: "public_web_search"}, err
+		return linkedInProfileResolution{Method: method}, err
 	}
 	if len(hits) == 0 {
-		return linkedInProfileResolution{Method: "public_web_search"}, errors.New("no public LinkedIn profile results were found for this name")
+		return linkedInProfileResolution{Method: method}, errors.New("no public LinkedIn profile results were found for this name")
 	}
 
 	profiles := make([]discoveredLinkedInProfile, len(hits))
@@ -187,7 +187,7 @@ func discoverLinkedInProfileByName(ctx context.Context, name string) (linkedInPr
 		return profiles[i].Score > profiles[j].Score
 	})
 
-	resolution := linkedInProfileResolution{Method: "public_web_search"}
+	resolution := linkedInProfileResolution{Method: method}
 	if len(profiles) == 0 {
 		return resolution, errors.New("public LinkedIn candidates could not be evaluated")
 	}
@@ -208,25 +208,64 @@ func discoverLinkedInProfileByName(ctx context.Context, name string) (linkedInPr
 	return resolution, nil
 }
 
-func searchPublicLinkedInProfiles(ctx context.Context, name string) ([]publicSearchHit, error) {
+func searchPublicLinkedInProfiles(ctx context.Context, name string) ([]publicSearchHit, string, error) {
+	if hits, err := searchLinkedInPublicDirectory(ctx, name); err == nil && len(hits) > 0 {
+		return hits, "linkedin_public_directory", nil
+	}
+	if hits, err := searchDuckDuckGoLinkedIn(ctx, name); err == nil && len(hits) > 0 {
+		return hits, "public_web_search", nil
+	}
+	return nil, "linkedin_public_directory", errors.New("public LinkedIn profile discovery was unavailable")
+}
+
+func searchLinkedInPublicDirectory(ctx context.Context, name string) ([]publicSearchHit, error) {
+	tokens := normalizedNameTokens(name)
+	if len(tokens) < 2 {
+		return nil, errors.New("public LinkedIn directory needs a first and last name")
+	}
+	first := tokens[0]
+	last := tokens[len(tokens)-1]
+	directoryURL := "https://www.linkedin.com/pub/dir/" + url.PathEscape(first) + "/" + url.PathEscape(last)
+	client := newSafeEnrichClient()
+	body, contentType, finalURL, err := fetchPublicText(ctx, client, directoryURL)
+	if err != nil {
+		return nil, err
+	}
+	if !strings.Contains(contentType, "text/html") && contentType != "" {
+		return nil, errors.New("LinkedIn directory returned an unsupported response")
+	}
+	return extractLinkedInHits(finalURL, body, maxLinkedInDiscoveryCandidates), nil
+}
+
+func searchDuckDuckGoLinkedIn(ctx context.Context, name string) ([]publicSearchHit, error) {
 	client := newSafeEnrichClient()
 	query := `site:linkedin.com/in/ "` + name + `"`
 	searchURL := "https://html.duckduckgo.com/html/?q=" + url.QueryEscape(query)
-	body, contentType, _, err := fetchPublicText(ctx, client, searchURL)
+	body, contentType, finalURL, err := fetchPublicText(ctx, client, searchURL)
 	if err != nil {
 		return nil, errors.New("public profile search was unavailable")
 	}
 	if !strings.Contains(contentType, "text/html") && contentType != "" {
 		return nil, errors.New("public profile search returned an unsupported response")
 	}
+	return extractLinkedInHits(finalURL, body, maxLinkedInDiscoveryCandidates), nil
+}
 
+func extractLinkedInHits(baseURL, body string, limit int) []publicSearchHit {
+	base, _ := url.Parse(baseURL)
 	seen := make(map[string]struct{})
 	var hits []publicSearchHit
 	for _, match := range resultAnchorRE.FindAllStringSubmatch(body, -1) {
 		if len(match) != 3 {
 			continue
 		}
-		target := decodeSearchResultURL(html.UnescapeString(strings.TrimSpace(match[1])))
+		rawTarget := html.UnescapeString(strings.TrimSpace(match[1]))
+		target := decodeSearchResultURL(rawTarget)
+		if target == "" && base != nil {
+			if relative, err := url.Parse(rawTarget); err == nil {
+				target = base.ResolveReference(relative).String()
+			}
+		}
 		if target == "" {
 			continue
 		}
@@ -241,11 +280,11 @@ func searchPublicLinkedInProfiles(ctx context.Context, name string) ([]publicSea
 		text := stripTagRE.ReplaceAllString(match[2], " ")
 		text = strings.Join(strings.Fields(html.UnescapeString(text)), " ")
 		hits = append(hits, publicSearchHit{URL: normalized, Text: text})
-		if len(hits) >= maxLinkedInDiscoveryCandidates {
+		if len(hits) >= limit {
 			break
 		}
 	}
-	return hits, nil
+	return hits
 }
 
 func decodeSearchResultURL(raw string) string {
@@ -370,18 +409,18 @@ func (app *application) enrichDiscoveredLinkedIn(ctx context.Context, requestedN
 	candidates := app.buildEmailCandidates(name, resolution.Domain, pattern, patternConfidence, harvest)
 
 	base := findWorkEmailResponse{
-		Success: true,
-		Name: name,
-		Company: company,
-		Domain: resolution.Domain,
-		DomainResolution: &resolution,
+		Success:            true,
+		Name:               name,
+		Company:            company,
+		Domain:             resolution.Domain,
+		DomainResolution:   &resolution,
 		ObservedEmailCount: len(harvest.Emails),
-		PagesFetched: harvest.PagesFetched,
-		Pattern: pattern,
-		PatternConfidence: patternConfidence,
-		Candidates: candidates,
-		Note: "The selected public LinkedIn profile is used only for identity and company context. Email candidates come from public company pages, domain resolution, observed company email patterns, and SMTP-independent validity checks.",
-		CheckedAt: time.Now().UTC(),
+		PagesFetched:       harvest.PagesFetched,
+		Pattern:            pattern,
+		PatternConfidence:  patternConfidence,
+		Candidates:         candidates,
+		Note:               "The selected public LinkedIn profile is used only for identity and company context. Email candidates come from public company pages, domain resolution, observed company email patterns, and SMTP-independent validity checks.",
+		CheckedAt:          time.Now().UTC(),
 	}
 	return &findLinkedInEmailResponse{findWorkEmailResponse: base, LinkedIn: profile.Signal}, nil
 }
