@@ -11,7 +11,6 @@ import (
 	"regexp"
 	"sort"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -55,6 +54,7 @@ type publicSearchHit struct {
 
 var resultAnchorRE = regexp.MustCompile(`(?is)<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>(.*?)</a>`)
 var stripTagRE = regexp.MustCompile(`(?is)<[^>]+>`)
+var linkedInProfileURLRE = regexp.MustCompile(`(?i)https?://(?:www\.)?linkedin\.com/in/[a-z0-9%._~-]+/?`)
 
 func (app *application) handleFindByName(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodOptions {
@@ -91,47 +91,27 @@ func (app *application) handleFindByName(w http.ResponseWriter, r *http.Request)
 
 	resolution, err := discoverLinkedInProfileByName(r.Context(), name)
 	if err != nil {
-		writeJSON(w, http.StatusUnprocessableEntity, map[string]any{
-			"success":            false,
-			"error":              err.Error(),
-			"profile_resolution": resolution,
-		})
+		writeJSON(w, http.StatusUnprocessableEntity, map[string]any{"success": false, "error": err.Error(), "profile_resolution": resolution})
 		return
 	}
 	if resolution.Selected == nil {
-		writeJSON(w, http.StatusUnprocessableEntity, map[string]any{
-			"success":            false,
-			"error":              "no sufficiently strong public LinkedIn profile match was found",
-			"profile_resolution": resolution,
-		})
+		writeJSON(w, http.StatusUnprocessableEntity, map[string]any{"success": false, "error": "no sufficiently strong public LinkedIn profile match was found", "profile_resolution": resolution})
+		return
+	}
+	if resolution.Ambiguous {
+		writeJSON(w, http.StatusConflict, map[string]any{"success": false, "error": "multiple LinkedIn profiles matched this name too closely; provide a company, domain, or LinkedIn URL to disambiguate", "profile_resolution": resolution})
 		return
 	}
 
 	selected := resolution.Selected
-	if resolution.Ambiguous {
-		writeJSON(w, http.StatusConflict, map[string]any{
-			"success":            false,
-			"error":              "multiple LinkedIn profiles matched this name too closely; provide a company, domain, or LinkedIn URL to disambiguate",
-			"profile_resolution": resolution,
-		})
-		return
-	}
 	if selected.Company == "" {
-		writeJSON(w, http.StatusUnprocessableEntity, map[string]any{
-			"success":            false,
-			"error":              "the matched public LinkedIn profile did not expose a usable current company",
-			"profile_resolution": resolution,
-		})
+		writeJSON(w, http.StatusUnprocessableEntity, map[string]any{"success": false, "error": "the matched public search result did not expose a usable current company", "profile_resolution": resolution})
 		return
 	}
 
 	emailResult, enrichErr := app.enrichDiscoveredLinkedIn(r.Context(), name, *selected)
 	if enrichErr != nil {
-		writeJSON(w, http.StatusUnprocessableEntity, map[string]any{
-			"success":            false,
-			"error":              enrichErr.Error(),
-			"profile_resolution": resolution,
-		})
+		writeJSON(w, http.StatusUnprocessableEntity, map[string]any{"success": false, "error": enrichErr.Error(), "profile_resolution": resolution})
 		return
 	}
 
@@ -139,7 +119,7 @@ func (app *application) handleFindByName(w http.ResponseWriter, r *http.Request)
 		Success: true,
 		Profile: resolution,
 		Email:   emailResult,
-		Note: "The service first discovers public LinkedIn profile URLs from LinkedIn's public directory, Bing's public RSS search, or public web search. It then uses only publicly accessible profile metadata as an identity/company signal before running the existing company-domain and email-pattern enrichment pipeline. Login walls or access challenges are not bypassed.",
+		Note: "The service discovers public LinkedIn profile URLs and company context from public search-result snippets. It does not bypass LinkedIn login walls. The selected company is then resolved to its official domain and the existing public-company-site email enrichment pipeline runs.",
 		CheckedAt: time.Now().UTC(),
 	})
 }
@@ -153,34 +133,13 @@ func discoverLinkedInProfileByName(ctx context.Context, name string) (linkedInPr
 		return linkedInProfileResolution{Method: method}, errors.New("no public LinkedIn profile results were found for this name")
 	}
 
-	profiles := make([]discoveredLinkedInProfile, len(hits))
-	sem := make(chan struct{}, 3)
-	var wg sync.WaitGroup
-	for i, hit := range hits {
-		i, hit := i, hit
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			select {
-			case sem <- struct{}{}:
-			case <-ctx.Done():
-				return
-			}
-			defer func() { <-sem }()
-
-			signal := fetchLinkedInPublicSignalForDiscovery(ctx, hit.URL)
-			profiles[i] = scoreDiscoveredProfile(name, hit, signal)
-		}()
-	}
-	wg.Wait()
-
-	filtered := profiles[:0]
-	for _, profile := range profiles {
+	profiles := make([]discoveredLinkedInProfile, 0, len(hits))
+	for _, hit := range hits {
+		profile := scoreDiscoveredProfile(name, hit, nil)
 		if profile.URL != "" {
-			filtered = append(filtered, profile)
+			profiles = append(profiles, profile)
 		}
 	}
-	profiles = filtered
 	sort.SliceStable(profiles, func(i, j int) bool {
 		if profiles[i].Score == profiles[j].Score {
 			return profiles[i].URL < profiles[j].URL
@@ -213,11 +172,14 @@ func searchPublicLinkedInProfiles(ctx context.Context, name string) ([]publicSea
 	if hits, err := searchLinkedInPublicDirectory(ctx, name); err == nil && len(hits) > 0 {
 		return hits, "linkedin_public_directory", nil
 	}
+	if hits, err := searchBingHTMLLinkedIn(ctx, name); err == nil && len(hits) > 0 {
+		return hits, "bing_html_search", nil
+	}
 	if hits, err := searchBingRSSLinkedIn(ctx, name); err == nil && len(hits) > 0 {
 		return hits, "bing_rss_search", nil
 	}
 	if hits, err := searchDuckDuckGoLinkedIn(ctx, name); err == nil && len(hits) > 0 {
-		return hits, "public_web_search", nil
+		return hits, "duckduckgo_search", nil
 	}
 	return nil, "public_search_fallbacks", errors.New("public LinkedIn profile discovery was unavailable")
 }
@@ -227,9 +189,7 @@ func searchLinkedInPublicDirectory(ctx context.Context, name string) ([]publicSe
 	if len(tokens) < 2 {
 		return nil, errors.New("public LinkedIn directory needs a first and last name")
 	}
-	first := tokens[0]
-	last := tokens[len(tokens)-1]
-	directoryURL := "https://www.linkedin.com/pub/dir/" + url.PathEscape(first) + "/" + url.PathEscape(last)
+	directoryURL := "https://www.linkedin.com/pub/dir/" + url.PathEscape(tokens[0]) + "/" + url.PathEscape(tokens[len(tokens)-1])
 	client := newSafeEnrichClient()
 	body, contentType, finalURL, err := fetchPublicText(ctx, client, directoryURL)
 	if err != nil {
@@ -241,11 +201,29 @@ func searchLinkedInPublicDirectory(ctx context.Context, name string) ([]publicSe
 	return extractLinkedInHits(finalURL, body, maxLinkedInDiscoveryCandidates), nil
 }
 
+func searchBingHTMLLinkedIn(ctx context.Context, name string) ([]publicSearchHit, error) {
+	query := `site:linkedin.com/in/ "` + name + `"`
+	searchURL := "https://www.bing.com/search?q=" + url.QueryEscape(query)
+	client := newSafeEnrichClient()
+	body, contentType, finalURL, err := fetchPublicText(ctx, client, searchURL)
+	if err != nil {
+		return nil, err
+	}
+	if !strings.Contains(contentType, "text/html") && contentType != "" {
+		return nil, errors.New("Bing returned an unsupported response")
+	}
+	hits := extractLinkedInHits(finalURL, body, maxLinkedInDiscoveryCandidates)
+	if len(hits) == 0 {
+		hits = extractLinkedInRawHits(body, maxLinkedInDiscoveryCandidates)
+	}
+	return hits, nil
+}
+
 type bingRSS struct {
 	Channel struct {
 		Items []struct {
-			Title string `xml:"title"`
-			Link  string `xml:"link"`
+			Title       string `xml:"title"`
+			Link        string `xml:"link"`
 			Description string `xml:"description"`
 		} `xml:"item"`
 	} `xml:"channel"`
@@ -266,35 +244,39 @@ func searchBingRSSLinkedIn(ctx context.Context, name string) ([]publicSearchHit,
 	seen := make(map[string]struct{})
 	var hits []publicSearchHit
 	for _, item := range feed.Channel.Items {
-		normalized, err := normalizeLinkedInProfileURL(strings.TrimSpace(item.Link))
-		if err != nil {
-			continue
-		}
-		if _, ok := seen[normalized]; ok {
-			continue
-		}
-		seen[normalized] = struct{}{}
-		text := strings.Join(strings.Fields(stripTagRE.ReplaceAllString(html.UnescapeString(item.Title+" "+item.Description), " ")), " ")
-		hits = append(hits, publicSearchHit{URL: normalized, Text: text})
-		if len(hits) >= maxLinkedInDiscoveryCandidates {
-			break
+		combined := item.Link + " " + item.Title + " " + item.Description
+		itemHits := extractLinkedInRawHits(combined, maxLinkedInDiscoveryCandidates-len(hits))
+		for _, hit := range itemHits {
+			if _, ok := seen[hit.URL]; ok {
+				continue
+			}
+			seen[hit.URL] = struct{}{}
+			hit.Text = strings.Join(strings.Fields(stripTagRE.ReplaceAllString(html.UnescapeString(item.Title+" "+item.Description), " ")), " ")
+			hits = append(hits, hit)
+			if len(hits) >= maxLinkedInDiscoveryCandidates {
+				return hits, nil
+			}
 		}
 	}
 	return hits, nil
 }
 
 func searchDuckDuckGoLinkedIn(ctx context.Context, name string) ([]publicSearchHit, error) {
-	client := newSafeEnrichClient()
 	query := `site:linkedin.com/in/ "` + name + `"`
 	searchURL := "https://html.duckduckgo.com/html/?q=" + url.QueryEscape(query)
+	client := newSafeEnrichClient()
 	body, contentType, finalURL, err := fetchPublicText(ctx, client, searchURL)
 	if err != nil {
-		return nil, errors.New("public profile search was unavailable")
+		return nil, err
 	}
 	if !strings.Contains(contentType, "text/html") && contentType != "" {
-		return nil, errors.New("public profile search returned an unsupported response")
+		return nil, errors.New("DuckDuckGo returned an unsupported response")
 	}
-	return extractLinkedInHits(finalURL, body, maxLinkedInDiscoveryCandidates), nil
+	hits := extractLinkedInHits(finalURL, body, maxLinkedInDiscoveryCandidates)
+	if len(hits) == 0 {
+		hits = extractLinkedInRawHits(body, maxLinkedInDiscoveryCandidates)
+	}
+	return hits, nil
 }
 
 func extractLinkedInHits(baseURL, body string, limit int) []publicSearchHit {
@@ -312,9 +294,6 @@ func extractLinkedInHits(baseURL, body string, limit int) []publicSearchHit {
 				target = base.ResolveReference(relative).String()
 			}
 		}
-		if target == "" {
-			continue
-		}
 		normalized, err := normalizeLinkedInProfileURL(target)
 		if err != nil {
 			continue
@@ -325,6 +304,43 @@ func extractLinkedInHits(baseURL, body string, limit int) []publicSearchHit {
 		seen[normalized] = struct{}{}
 		text := stripTagRE.ReplaceAllString(match[2], " ")
 		text = strings.Join(strings.Fields(html.UnescapeString(text)), " ")
+		hits = append(hits, publicSearchHit{URL: normalized, Text: text})
+		if len(hits) >= limit {
+			break
+		}
+	}
+	return hits
+}
+
+func extractLinkedInRawHits(body string, limit int) []publicSearchHit {
+	if limit <= 0 {
+		return nil
+	}
+	decoded := html.UnescapeString(body)
+	decoded = strings.ReplaceAll(decoded, `\/`, `/`)
+	seen := make(map[string]struct{})
+	matches := linkedInProfileURLRE.FindAllStringIndex(decoded, -1)
+	var hits []publicSearchHit
+	for _, match := range matches {
+		raw := decoded[match[0]:match[1]]
+		normalized, err := normalizeLinkedInProfileURL(raw)
+		if err != nil {
+			continue
+		}
+		if _, ok := seen[normalized]; ok {
+			continue
+		}
+		seen[normalized] = struct{}{}
+		start := match[0] - 350
+		if start < 0 {
+			start = 0
+		}
+		end := match[1] + 500
+		if end > len(decoded) {
+			end = len(decoded)
+		}
+		text := stripTagRE.ReplaceAllString(decoded[start:end], " ")
+		text = strings.Join(strings.Fields(text), " ")
 		hits = append(hits, publicSearchHit{URL: normalized, Text: text})
 		if len(hits) >= limit {
 			break
@@ -358,15 +374,19 @@ func decodeSearchResultURL(raw string) string {
 }
 
 func scoreDiscoveredProfile(wantedName string, hit publicSearchHit, signal *linkedInPublicSignal) discoveredLinkedInProfile {
-	profile := discoveredLinkedInProfile{URL: hit.URL, Status: "unavailable", SearchText: hit.Text, Signal: signal}
+	profile := discoveredLinkedInProfile{URL: hit.URL, Status: "search_snippet", SearchText: hit.Text, Signal: signal}
 	if signal != nil {
 		profile.Status = signal.Status
 		profile.Name = signal.Name
 		profile.Headline = signal.Headline
 		profile.Company = signal.Company
 	}
+	if profile.Company == "" {
+		profile.Company = companyFromSearchText(wantedName, hit.Text)
+	}
 
 	score := nameMatchScore(wantedName, firstNonEmpty(profile.Name, hit.Text))
+	score += linkedInSlugBonus(wantedName, hit.URL)
 	if profile.Status == "fetched" {
 		score += 8
 	}
@@ -383,6 +403,54 @@ func scoreDiscoveredProfile(wantedName string, hit publicSearchHit, signal *link
 	return profile
 }
 
+func linkedInSlugBonus(wantedName, rawURL string) int {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return 0
+	}
+	slug := strings.Trim(strings.TrimPrefix(strings.ToLower(u.Path), "/in/"), "/")
+	want := strings.Join(normalizedNameTokens(wantedName), "")
+	compactSlug := strings.ReplaceAll(strings.ReplaceAll(slug, "-", ""), "_", "")
+	if compactSlug == want {
+		return 15
+	}
+	if strings.HasPrefix(compactSlug, want) {
+		return 5
+	}
+	return 0
+}
+
+func companyFromSearchText(wantedName, text string) string {
+	text = strings.Join(strings.Fields(html.UnescapeString(stripTagRE.ReplaceAllString(text, " "))), " ")
+	if text == "" {
+		return ""
+	}
+	if company := companyFromHeadline(text); company != "" && !strings.EqualFold(company, "LinkedIn") {
+		return company
+	}
+	lower := strings.ToLower(text)
+	wanted := strings.ToLower(strings.Join(strings.Fields(wantedName), " "))
+	idx := strings.Index(lower, wanted)
+	if idx < 0 {
+		return ""
+	}
+	rest := strings.TrimSpace(text[idx+len(wanted):])
+	rest = strings.TrimLeft(rest, " -–—|·:")
+	for _, marker := range []string{" | LinkedIn", " - LinkedIn", " · LinkedIn", " LinkedIn"} {
+		if cut := strings.Index(strings.ToLower(rest), strings.ToLower(marker)); cut >= 0 {
+			rest = strings.TrimSpace(rest[:cut])
+			break
+		}
+	}
+	if cut := strings.IndexAny(rest, "|·\n"); cut >= 0 {
+		rest = strings.TrimSpace(rest[:cut])
+	}
+	if len(rest) >= 2 && len(rest) <= 160 && !strings.EqualFold(rest, "LinkedIn") {
+		return rest
+	}
+	return ""
+}
+
 func nameMatchScore(wanted, candidate string) int {
 	wantTokens := normalizedNameTokens(wanted)
 	candidateTokens := normalizedNameTokens(candidate)
@@ -397,7 +465,6 @@ func nameMatchScore(wanted, candidate string) int {
 	if strings.Contains(candidateJoined, wantJoined) {
 		return 84
 	}
-
 	wantSet := make(map[string]struct{}, len(wantTokens))
 	for _, token := range wantTokens {
 		wantSet[token] = struct{}{}
@@ -442,7 +509,6 @@ func (app *application) enrichDiscoveredLinkedIn(ctx context.Context, requestedN
 	if name == "" {
 		name = strings.TrimSpace(requestedName)
 	}
-
 	resolution, err := resolveCompanyDomain(ctx, company)
 	if err != nil {
 		return nil, err
@@ -453,7 +519,6 @@ func (app *application) enrichDiscoveredLinkedIn(ctx context.Context, requestedN
 	}
 	pattern, patternConfidence := inferObservedPattern(harvest.Emails, resolution.Domain)
 	candidates := app.buildEmailCandidates(name, resolution.Domain, pattern, patternConfidence, harvest)
-
 	base := findWorkEmailResponse{
 		Success:            true,
 		Name:               name,
@@ -465,7 +530,7 @@ func (app *application) enrichDiscoveredLinkedIn(ctx context.Context, requestedN
 		Pattern:            pattern,
 		PatternConfidence:  patternConfidence,
 		Candidates:         candidates,
-		Note:               "The selected public LinkedIn profile is used only for identity and company context. Email candidates come from public company pages, domain resolution, observed company email patterns, and SMTP-independent validity checks.",
+		Note:               "The selected LinkedIn profile URL and company come from public search-result snippets. Email candidates come from public company pages, domain resolution, observed company email patterns, and SMTP-independent validity checks.",
 		CheckedAt:          time.Now().UTC(),
 	}
 	return &findLinkedInEmailResponse{findWorkEmailResponse: base, LinkedIn: profile.Signal}, nil
