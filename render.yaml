@@ -1,41 +1,16 @@
 services:
   - type: web
-    name: valid-mail
-    runtime: go
+    name: weme
+    runtime: docker
     plan: free
     region: singapore
-    buildCommand: go build -o bin/valid-mail .
-    startCommand: ./bin/valid-mail
+    dockerfilePath: ./Dockerfile
     healthCheckPath: /healthz
     autoDeploy: true
     envVars:
-      - key: GOFLAGS
-        value: "-mod=mod"
       - key: ENABLE_SMTP
         value: "false"
       - key: ENABLE_PROXY_SMTP
-        value: "true"
-      - key: SMTP_FROM_EMAIL
-        value: "verify@aurat.ai"
-      - key: SMTP_HELLO_NAME
-        value: "aurat.ai"
-      - key: SMTP_MAX_ATTEMPTS
-        value: "3"
-      - key: SMTP_CATCHALL_PROBES
-        value: "2"
-      - key: SMTP_NEGATIVE_CONSENSUS
-        value: "2"
-      - key: SMTP_MAX_CONCURRENCY
-        value: "4"
-      - key: PROXY_MAX_CANDIDATES
-        value: "120"
-      - key: PROXY_MAX_HEALTHY
-        value: "5"
-      - key: PROXY_PROBE_CONCURRENCY
-        value: "30"
-      - key: PROXY_PROBE_TIMEOUT
-        value: "3s"
-      - key: PROXY_REFRESH_INTERVAL
-        value: "5m"
+        value: "false"
       - key: AUTO_UPDATE_DISPOSABLE
         value: "false"

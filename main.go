@@ -1,25 +1,31 @@
 package main
 
 import (
-	_ "embed"
+	"context"
 	"encoding/json"
+	"errors"
 	"log"
+	"net"
 	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	emailverifier "github.com/AfterShip/email-verifier"
 )
 
-//go:embed web/index.html
-var indexHTML []byte
+type addressVerifier interface {
+	Verify(string) (*emailverifier.Result, error)
+}
 
 type application struct {
-	baseVerifier      *emailverifier.Verifier
+	baseVerifier      addressVerifier
 	directSMTP        bool
 	proxySMTP         bool
+	smtpProxyURL      string
 	proxyPool         *proxyPool
 	fromEmail         string
 	helloName         string
@@ -29,6 +35,12 @@ type application struct {
 	catchAllProbes    int
 	negativeConsensus int
 	smtpSlots         chan struct{}
+	verifySlots       chan struct{}
+	verifyLimiter     *requestLimiter
+	smtpTotalTimeout  time.Duration
+	smtpProbe         func(context.Context, string, string) singleSMTPProbe
+	smtpDial          func(context.Context, string, string, time.Duration) (net.Conn, error)
+	smtpLookupMX      func(context.Context, string) ([]*net.MX, error)
 }
 
 type verifyRequest struct {
@@ -46,45 +58,41 @@ type verifyResponse struct {
 	Warning        string                  `json:"warning,omitempty"`
 	CheckedAt      time.Time               `json:"checked_at"`
 	DurationMS     int64                   `json:"duration_ms"`
+	DNSUnavailable bool                    `json:"-"`
 }
 
 func main() {
-	directSMTP := envBool("ENABLE_SMTP", false)
-	proxySMTP := envBool("ENABLE_PROXY_SMTP", true)
-	baseVerifier := emailverifier.NewVerifier().EnableDomainSuggest()
+	directSMTP := envBool("ENABLE_SMTP", true)
+	proxySMTP := envBool("ENABLE_PROXY_SMTP", false)
+	smtpProxyURL := strings.TrimSpace(os.Getenv("SMTP_PROXY_URL"))
+	baseVerifier := newDomainVerifier()
 
 	if envBool("AUTO_UPDATE_DISPOSABLE", false) {
-		baseVerifier.EnableAutoUpdateDisposable()
+		baseVerifier.metadata.EnableAutoUpdateDisposable()
 	}
 
 	app := &application{
 		baseVerifier:      baseVerifier,
 		directSMTP:        directSMTP,
 		proxySMTP:         proxySMTP,
+		smtpProxyURL:      smtpProxyURL,
 		fromEmail:         envString("SMTP_FROM_EMAIL", ""),
 		helloName:         envString("SMTP_HELLO_NAME", ""),
 		connectTimeout:    envDuration("SMTP_CONNECT_TIMEOUT", 7*time.Second, time.Second, 20*time.Second),
+		smtpTotalTimeout:  envDuration("SMTP_TOTAL_TIMEOUT", 25*time.Second, time.Second, 30*time.Second),
 		operationTimeout:  envDuration("SMTP_OPERATION_TIMEOUT", 8*time.Second, time.Second, 25*time.Second),
 		maxSMTPAttempts:   envInt("SMTP_MAX_ATTEMPTS", 3, 1, 5),
 		catchAllProbes:    envInt("SMTP_CATCHALL_PROBES", 2, 1, 3),
 		negativeConsensus: envInt("SMTP_NEGATIVE_CONSENSUS", 2, 1, 3),
 		smtpSlots:         make(chan struct{}, envInt("SMTP_MAX_CONCURRENCY", 4, 1, 20)),
+		verifySlots:       make(chan struct{}, envInt("VERIFY_MAX_CONCURRENCY", 8, 1, 64)),
+		verifyLimiter:     newRequestLimiter(30, time.Minute, 10_000),
 	}
 
 	if proxySMTP {
 		app.proxyPool = newProxyPool()
 		go app.proxyPool.run()
 	}
-
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", app.handleHome)
-	mux.HandleFunc("/finder", app.handleFinderPage)
-	mux.HandleFunc("/healthz", app.handleHealth)
-	mux.HandleFunc("/api/verify", app.handleVerify)
-	mux.HandleFunc("/api/find-email", app.handleFindEmail)
-	mux.HandleFunc("/api/find-work-email", app.handleFindWorkEmail)
-	mux.HandleFunc("/api/find-linkedin-email", app.handleFindLinkedInEmail)
-	mux.HandleFunc("/api/find-by-name", app.handleFindByName)
 
 	port := strings.TrimSpace(os.Getenv("PORT"))
 	if port == "" {
@@ -93,32 +101,42 @@ func main() {
 
 	server := &http.Server{
 		Addr:              ":" + port,
-		Handler:           securityHeaders(mux),
+		Handler:           app.routes(),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      45 * time.Second,
 		IdleTimeout:       60 * time.Second,
+		MaxHeaderBytes:    16 << 10,
 	}
-
-	log.Printf("valid-mail listening on :%s (direct_smtp=%t proxy_smtp=%t)", port, directSMTP, proxySMTP)
-	log.Fatal(server.ListenAndServe())
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	go func() {
+		<-ctx.Done()
+		shutdown, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := server.Shutdown(shutdown); err != nil {
+			log.Printf("shutdown: %v", err)
+		}
+	}()
+	log.Printf("WeMe listening on :%s (direct_smtp=%t proxy_smtp=%t)", port, directSMTP, proxySMTP)
+	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		log.Fatal(err)
+	}
 }
 
-func (app *application) handleHome(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/" {
-		http.NotFound(w, r)
-		return
-	}
-	if r.Method != http.MethodGet && r.Method != http.MethodHead {
-		w.Header().Set("Allow", "GET, HEAD")
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if r.Method == http.MethodGet {
-		_, _ = w.Write(indexHTML)
-	}
+func (app *application) routes() http.Handler {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", serveFrontend)
+	mux.HandleFunc("/healthz", app.handleHealth)
+	mux.HandleFunc("/api/verify", app.handleVerify)
+	mux.HandleFunc("/api/find-email", app.handleFindEmail)
+	mux.HandleFunc("/api/find-work-email", app.handleFindWorkEmail)
+	mux.HandleFunc("/api/find-linkedin-email", app.handleFindLinkedInEmail)
+	mux.HandleFunc("/api/find-by-name", app.handleFindByName)
+	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusNotFound, map[string]any{"success": false, "error": "endpoint not found"})
+	})
+	return securityHeaders(mux)
 }
 
 func (app *application) handleHealth(w http.ResponseWriter, r *http.Request) {
@@ -131,7 +149,7 @@ func (app *application) handleHealth(w http.ResponseWriter, r *http.Request) {
 	payload := map[string]any{
 		"ok":                 true,
 		"service":            "valid-mail",
-		"smtp_enabled":       app.directSMTP || app.proxySMTP,
+		"smtp_enabled":       app.directSMTP || app.proxySMTP || app.smtpProxyURL != "",
 		"direct_smtp":        app.directSMTP,
 		"proxy_smtp_enabled": app.proxySMTP,
 		"catch_all_probes":   app.catchAllProbes,
@@ -157,6 +175,12 @@ func (app *application) handleVerify(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	w.Header().Set("Cache-Control", "no-store")
+	if app.verifyLimiter != nil && !app.verifyLimiter.allow(requestIP(r)) {
+		w.Header().Set("Retry-After", "60")
+		writeJSON(w, http.StatusTooManyRequests, map[string]any{"success": false, "error": "Too many checks. Please wait a minute and try again."})
+		return
+	}
 
 	var email string
 	if r.Method == http.MethodGet {
@@ -170,6 +194,10 @@ func (app *application) handleVerify(w http.ResponseWriter, r *http.Request) {
 		decoder.DisallowUnknownFields()
 		if err := decoder.Decode(&req); err != nil {
 			writeJSON(w, http.StatusBadRequest, map[string]any{"success": false, "error": "invalid JSON body"})
+			return
+		}
+		if err := requireJSONEnd(decoder); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]any{"success": false, "error": "provide one JSON object"})
 			return
 		}
 		email = req.Email
@@ -186,6 +214,15 @@ func (app *application) handleVerify(w http.ResponseWriter, r *http.Request) {
 	}
 
 	started := time.Now()
+	if app.verifySlots != nil {
+		select {
+		case app.verifySlots <- struct{}{}:
+			defer func() { <-app.verifySlots }()
+		default:
+			writeJSON(w, http.StatusServiceUnavailable, map[string]any{"success": false, "error": "The service is busy. Please try again shortly."})
+			return
+		}
+	}
 	result, baseErr := app.baseVerifier.Verify(email)
 	if result == nil {
 		message := "verification failed"
@@ -199,35 +236,42 @@ func (app *application) handleVerify(w http.ResponseWriter, r *http.Request) {
 	response := verifyResponse{
 		Success:      true,
 		Verification: result,
-		SMTPEnabled:  app.directSMTP || app.proxySMTP,
+		SMTPEnabled:  app.directSMTP || app.proxySMTP || app.smtpProxyURL != "",
 		CheckedAt:    time.Now().UTC(),
 	}
 	if app.proxyPool != nil {
 		response.HealthyProxies = app.proxyPool.stats().Healthy
 	}
 	if baseErr != nil {
-		response.Warning = baseErr.Error()
+		if dnsUnavailable(result, baseErr) {
+			response.DNSUnavailable = true
+			response.Warning = "Domain verification is temporarily unavailable because the DNS lookup failed. Try again later; this is not evidence that the address is invalid."
+		} else {
+			response.Warning = "The domain could not be verified. Review the address and try again."
+		}
 	}
 
 	if !result.Syntax.Valid {
 		response.Reachability = &reachabilityAssessment{Status: "invalid", Reason: "bad_syntax", Confidence: 100, Evidence: "The email address syntax is invalid."}
-	} else if !result.HasMxRecords {
+	} else if response.DNSUnavailable {
+		response.Reachability = &reachabilityAssessment{Status: "unknown", Reason: "dns_unavailable", Confidence: 0, Evidence: "DNS is unavailable, so mail routing and mailbox reachability could not be checked.", Retryable: true}
+	} else if !result.HasMxRecords && !result.Disposable {
 		response.Reachability = &reachabilityAssessment{Status: "invalid", Reason: "no_mx", Confidence: 100, Evidence: "The domain does not publish MX records for receiving mail."}
 	} else if result.Disposable {
 		response.Reachability = &reachabilityAssessment{Status: "risky", Reason: "disposable_domain", Confidence: 95, Evidence: "The address belongs to a known disposable-email domain."}
-	} else if shouldAttemptSMTP(result) && (app.directSMTP || app.proxySMTP) {
+	} else if shouldAttemptSMTP(result) && (app.directSMTP || app.proxySMTP || app.smtpProxyURL != "") {
 		select {
 		case app.smtpSlots <- struct{}{}:
 			defer func() { <-app.smtpSlots }()
-		case <-r.Context().Done():
-			response.Reachability = &reachabilityAssessment{Status: "unknown", Reason: "request_cancelled", Confidence: 0, Evidence: "The request ended before SMTP verification could run.", Retryable: true}
-			response.Warning = "request cancelled before SMTP verification"
+		default:
+			response.Reachability = &reachabilityAssessment{Status: "unknown", Reason: "smtp_busy", Confidence: 0, Evidence: "All SMTP verification slots are busy. Please retry shortly.", Retryable: true}
+			response.Warning = "SMTP verification is busy. Please retry shortly."
 			response.DurationMS = time.Since(started).Milliseconds()
 			writeJSON(w, http.StatusOK, response)
 			return
 		}
 
-		assessment, attempted, viaProxy := app.assessReachability(email)
+		assessment, attempted, viaProxy := app.assessReachability(r.Context(), email)
 		response.Reachability = assessment
 		response.SMTPAttempted = attempted
 		response.SMTPViaProxy = viaProxy
@@ -273,6 +317,8 @@ func warningForAssessment(a *reachabilityAssessment) string {
 		return ""
 	}
 	switch a.Reason {
+	case "smtp_connection_failed", "smtp_tls_failed", "smtp_inconclusive":
+		return "The SMTP route could not complete verification. Mailbox existence remains unknown; this does not mean the address is invalid."
 	case "smtp_blocked", "smtp_sender_rejected", "smtp_session_rejected":
 		return "The mail server rejected the verification route or sender identity, so mailbox existence remains unknown."
 	case "smtp_greylisted", "smtp_rate_limited", "smtp_temporary_failure":
@@ -301,11 +347,14 @@ func writeJSON(w http.ResponseWriter, status int, value any) {
 
 func securityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		if strings.HasPrefix(r.URL.Path, "/api/") {
+			w.Header().Set("Cache-Control", "no-store")
+		}
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("Referrer-Policy", "no-referrer")
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'")
+		w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
 		next.ServeHTTP(w, r)
 	})
 }

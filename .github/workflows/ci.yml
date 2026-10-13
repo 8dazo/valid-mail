@@ -1,0 +1,38 @@
+name: Validate WeMe
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.27.2'
+      - run: npm ci && npm run format:check && npm run build && npm test && npm audit
+        working-directory: frontend
+      - run: go test -race -count=1 ./... && go vet ./... && go build -mod=readonly -o bin/weme .
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - name: Run browser tests against the embedded production bundle
+        run: |
+          ./bin/weme >/tmp/weme.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid"' EXIT
+          curl --fail --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:8080/healthz
+          cd frontend
+          npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-test-results
+          path: frontend/test-results/

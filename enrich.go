@@ -55,7 +55,7 @@ type findEmailResponse struct {
 	PatternConfidence  int                  `json:"pattern_confidence"`
 	Candidates         []findEmailCandidate `json:"candidates"`
 	Note               string               `json:"note"`
-	CheckedAt          time.Time             `json:"checked_at"`
+	CheckedAt          time.Time            `json:"checked_at"`
 }
 
 type harvestResult struct {
@@ -175,9 +175,11 @@ func (app *application) handleFindEmail(w http.ResponseWriter, r *http.Request) 
 }
 
 func requestIP(r *http.Request) string {
-	if forwarded := strings.TrimSpace(r.Header.Get("X-Forwarded-For")); forwarded != "" {
+	if forwarded := strings.TrimSpace(r.Header.Get("X-Forwarded-For")); envBool("TRUST_PROXY", false) && forwarded != "" {
 		if first := strings.TrimSpace(strings.Split(forwarded, ",")[0]); first != "" {
-			return first
+			if net.ParseIP(first) != nil {
+				return first
+			}
 		}
 	}
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
@@ -192,6 +194,16 @@ func allowEnrichRequest(key string) bool {
 	cutoff := now.Add(-time.Minute)
 	enrichRateState.Lock()
 	defer enrichRateState.Unlock()
+	if len(enrichRateState.Hits) >= 10_000 {
+		for k, hits := range enrichRateState.Hits {
+			if len(hits) == 0 || hits[len(hits)-1].Before(cutoff) {
+				delete(enrichRateState.Hits, k)
+			}
+		}
+		if _, exists := enrichRateState.Hits[key]; !exists && len(enrichRateState.Hits) >= 10_000 {
+			return false
+		}
+	}
 
 	hits := enrichRateState.Hits[key]
 	kept := hits[:0]
@@ -328,7 +340,16 @@ func harvestCompanyWebsite(ctx context.Context, domain string) (harvestResult, e
 	sort.Strings(result.Emails)
 
 	publicHarvestCache.Lock()
-	publicHarvestCache.Items[domain] = harvestCacheEntry{Expires: time.Now().Add(enrichCacheTTL), Result: cloneHarvest(result)}
+	if len(publicHarvestCache.Items) >= 1000 {
+		for key, entry := range publicHarvestCache.Items {
+			if time.Now().After(entry.Expires) {
+				delete(publicHarvestCache.Items, key)
+			}
+		}
+	}
+	if len(publicHarvestCache.Items) < 1000 {
+		publicHarvestCache.Items[domain] = harvestCacheEntry{Expires: time.Now().Add(enrichCacheTTL), Result: cloneHarvest(result)}
+	}
 	publicHarvestCache.Unlock()
 
 	if result.PagesFetched == 0 {
@@ -515,8 +536,8 @@ func fetchPublicText(ctx context.Context, client *http.Client, rawURL string) (s
 func extractPublicEmails(body, domain string) []string {
 	text := strings.ToLower(html.UnescapeString(body))
 	replacements := []struct{ old, new string }{
-		{"[at]", "@"}, {"(at)", "@"}, {" at ", "@"},
-		{"[dot]", "."}, {"(dot)", "."}, {" dot ", "."},
+		{" [at] ", "@"}, {" (at) ", "@"}, {"[at]", "@"}, {"(at)", "@"}, {" at ", "@"},
+		{" [dot] ", "."}, {" (dot) ", "."}, {"[dot]", "."}, {"(dot)", "."}, {" dot ", "."},
 	}
 	for _, replacement := range replacements {
 		text = strings.ReplaceAll(text, replacement.old, replacement.new)

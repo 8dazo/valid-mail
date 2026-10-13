@@ -1,211 +1,108 @@
-# Valid Mail
+# WeMe
 
-A small self-hosted email validity, work-email discovery, and reachability service written in Go.
+**Small tools. A little breathing room.**
 
-The primary validity check uses [AfterShip/email-verifier](https://github.com/AfterShip/email-verifier) for syntax and domain metadata. The existing confidence-aware SMTP probe layer remains separate and can run through rotating SOCKS5 proxies when mailbox-level evidence is available.
+WeMe turns the original email checker into a collection of **21 everyday utilities**, with a React + TypeScript interface and a Go server. The visual design pairs a generated, dithered Mediterranean coast with self-hosted Instrument Serif and DM Sans fonts, a custom SVG mark, teal controls, and consistent workspaces.
 
-The web UI and JSON API are served by the same process, so the project can run as one Render service.
+![WeMe coastal artwork](frontend/public/images/weme-coast.webp)
 
-## Product surfaces
+## The collection
 
-- `/` — verify a known email address
-- `/finder` — find likely work-email candidates from a person's name and company
+| Validation | Conversion | Generators | Developer | Text |
+| --- | --- | --- | --- | --- |
+| Email validator | JSON ↔ YAML | QR code | JSON formatter & repair | Markdown preview |
+| Phone validator | XML ↔ JSON | Secure passwords | JWT decoder | Text comparison |
+| URL inspector | CSV ↔ JSON | UUID & Nano ID | Cron explainer | Case converter |
+| IP inspector | Base64 | | SHA-256 / SHA-512 | |
+| Work email finder | Unix timestamps | | | |
+| | URL encoder/decoder | | | |
 
-## What it checks
+Nineteen tools run locally in the browser; email validation and work-email discovery use the same-origin server. Search, category filters, favorites, recent tool IDs, examples, copying, downloads, mobile layouts, keyboard navigation, and reduced-motion support are included. The scrolling strip credits libraries used by WeMe; it does not claim sponsorship.
 
-### Validity — no SMTP required
+See [tool research and source selection](docs/tool-research.md) and [third-party notices](docs/third-party.md).
 
-- Email syntax
-- DNS MX records
-- Disposable email domains
-- Role accounts such as `support@` and `admin@`
-- Free email providers
-- Common domain typo suggestions
+## Develop
 
-### Work-email discovery — no LinkedIn scraping
-
-The finder accepts a person name plus either a company name or a known company domain.
-
-When only a company name is supplied, Valid Mail:
-
-1. Generates likely official-domain candidates from the company name.
-2. Keeps only public DNS destinations and safely fetches candidate homepages.
-3. Scores company-name/title matches, domain-name similarity, and mail capability.
-4. Crawls a small robots-aware set of public company pages such as `/about`, `/team`, `/people`, `/contact`, `/press`, `security.txt`, and relevant sitemap links.
-5. Extracts real `@company-domain` emails from those pages.
-6. Learns the dominant company email pattern when enough examples exist.
-7. Generates a small ranked set of candidates for the requested person.
-8. Runs SMTP-independent validity checks on each generated candidate.
-
-The web crawler uses bounded concurrency, short timeouts, page limits, caching, same-domain link discovery, response-size limits, and SSRF protection. It does not use the SMTP ProxyScrape pool and does not scrape LinkedIn.
-
-### Optional mailbox reachability — existing SMTP layer
-
-- SMTP recipient response codes and enhanced status codes
-- Catch-all behavior using multiple random non-existent recipients
-- Mailbox-full / disabled / temporary / greylisted / rate-limited / policy-blocked responses
-- Independent-route confirmation before a public proxy rejection can mark an address invalid
-
-## Validity model
-
-Every successful `/api/verify` response includes a `validity` object that is deliberately independent of SMTP and proxy availability.
-
-`validity.status` is one of:
-
-- `valid` — syntax is valid and the domain publishes MX records
-- `invalid` — syntax is invalid or the domain does not publish MX records
-- `risky` — the address uses a disposable domain or has a possible domain typo that should be reviewed
-
-Example:
-
-```json
-{
-  "validity": {
-    "status": "valid",
-    "scope": "address_and_domain",
-    "reason": "syntax_and_domain_valid",
-    "evidence": "The address syntax is valid and the domain publishes MX records. This validates the address/domain structure, not the existence of the individual mailbox.",
-    "checks": {
-      "syntax_valid": true,
-      "has_mx": true,
-      "disposable": false,
-      "role_account": false,
-      "free_provider": false
-    }
-  }
-}
-```
-
-A `valid` result does **not** claim that the individual mailbox exists or belongs to a particular person. That is why mailbox reachability remains a separate signal.
-
-## Finder API
-
-### POST `/api/find-work-email`
-
-Company name only:
+Use Node 24+ and Go 1.25+. The deployment build pins Node 24.19.0 and Go 1.27.2.
 
 ```bash
-curl -X POST http://localhost:8080/api/find-work-email \
-  -H 'Content-Type: application/json' \
-  -d '{"name":"Jane Smith","company":"Acme Labs"}'
-```
-
-If you already know the company domain, provide it to skip automatic domain resolution:
-
-```bash
-curl -X POST http://localhost:8080/api/find-work-email \
-  -H 'Content-Type: application/json' \
-  -d '{"name":"Jane Smith","company":"Acme Labs","domain":"acme.com"}'
-```
-
-The response includes:
-
-- `domain_resolution` — selected domain, confidence, method, and high-scoring alternatives
-- `observed_email_count` — public company-domain emails found
-- `pages_fetched` — bounded public pages actually read
-- `pattern` / `pattern_confidence` — inferred naming convention
-- `candidates` — ranked work-email candidates, public source evidence when exact matches were found, and SMTP-independent validity
-
-The older `POST /api/find-email` endpoint remains available when the caller already knows the company domain.
-
-## Reachability model
-
-The existing SMTP behavior is unchanged.
-
-`reachability.status` is one of:
-
-- `valid` — target accepted and random recipients were rejected (non-catch-all evidence)
-- `invalid` — strong recipient-specific negative evidence, normally confirmed over multiple routes when public proxies are used
-- `risky` — mailbox may exist but SMTP cannot prove it safely (catch-all, full mailbox, target accepted while catch-all test is inconclusive)
-- `unknown` — route blocked, greylisted, rate-limited, unavailable, or otherwise not recipient-specific
-
-`reachability.confidence` describes confidence in the displayed reachability verdict. It is **not** a probability that an email belongs to a real person.
-
-### Why negative consensus?
-
-Public proxy IPs are often blocked or poorly reputed. One `550`-style response is therefore not enough unless it is clearly recipient-specific and confirmed by the configured number of independent routes. The default is two routes.
-
-### Catch-all detection
-
-When the target is accepted, Valid Mail probes multiple random addresses at the same domain. If all random recipients are accepted, the domain is reported as catch-all and the target is `risky`, not `valid`. If all random recipients are explicitly rejected as missing, the target can be classified much more confidently.
-
-## Run locally
-
-Requires Go 1.25+.
-
-```bash
+cd frontend
+npm ci
+npm run build
+cd ..
 go mod download
-go test ./...
-go run .
+go run -mod=readonly .
 ```
 
-Open `http://localhost:8080` or `http://localhost:8080/finder`.
+The server listens on port 8080 by default. It embeds the frontend build, so **run `npm run build` before compiling Go**. On this cloud machine, first run `source /workspace/.cloud/weme/activate.sh` to select the installed Go compiler and caches.
 
-## Verify API
+For hot reload, start the Go service as above, then run `npm run dev` in `frontend/` in a second terminal. Vite proxies API requests to the Go server. Build the frontend again before testing the embedded production version.
 
-### POST `/api/verify`
+`make build` builds `bin/weme`; `make test` builds the frontend, runs frontend unit tests, runs the Go race tests, and runs `go vet`.
+
+## Validate
 
 ```bash
-curl -X POST http://localhost:8080/api/verify \
-  -H 'Content-Type: application/json' \
-  -d '{"email":"hello@example.com"}'
+cd frontend
+npm run build
+npm test
+npm audit
+cd ..
+go test -race -count=1 ./...
+go vet ./...
 ```
 
-The response includes:
-
-- `verification` — upstream syntax/domain metadata
-- `validity` — SMTP-independent address/domain validity
-- `reachability` — existing mailbox-level SMTP assessment when available
-
-### GET `/api/verify?email=...`
+Browser checks exercise every local tool example on desktop and mobile:
 
 ```bash
-curl 'http://localhost:8080/api/verify?email=hello@example.com'
+# Keep the Go server running first.
+cd frontend
+npx playwright install chromium
+npm run test:e2e
 ```
 
-### GET `/healthz`
+If system Chromium exists at `/usr/bin/chromium`, the test configuration uses it. `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` overrides the binary; `WEME_BASE_URL` overrides the server address. Browser screenshots and traces are written only to ignored test-result directories.
 
-Returns service health plus proxy-pool size and the active SMTP verification policy.
+## Production deployment
 
-## SMTP / proxy behavior
+For Vercel, deploy the repository root using the included `vercel.json`. It builds the frontend and runs the complete Go HTTP application on Vercel's Go runtime. See [Vercel deployment instructions](docs/vercel-deployment.md); deploying only the frontend omits the email APIs.
 
-Render Free blocks direct outbound SMTP, so the default deployment can use the free ProxyScrape SOCKS5 list. The pool only retains proxies that can open a real SMTP connection and read a `220` greeting.
+```bash
+docker build -t weme .
+docker run --rm -p 8080:8080 --read-only --cap-drop=ALL \
+  --security-opt=no-new-privileges --memory=512m --cpus=2 weme
+```
 
-Public proxies are untrusted and unstable. Valid Mail never sends authentication credentials or an email message body through them, and the API never exposes the proxy IPs it used.
+The multi-stage Docker build installs frozen npm dependencies, builds the frontend, verifies Go dependencies, and produces a static binary. The final distroless image runs as a non-root user. `render.yaml` declares the Docker service and `/healthz` health check. TLS should terminate at the hosting platform or reverse proxy; the application serves HTTP internally. No deployment is published by local build commands.
 
-The public-web finder does **not** use these proxies. Web discovery intentionally uses direct, rate-limited, robots-aware HTTP requests instead of proxy rotation for block evasion.
+On this cloud machine, use `python3 scripts/cloud-docker-build.py` to build through the already injected HTTPS proxy. The helper supplies its host mapping and mounts the existing public CA bundle transiently, preserving TLS verification. It never writes proxy credentials into repository files or the final image.
 
-## Environment variables
+The existing APIs remain available. Direct frontend routes include `/tools/email`, `/tools/json`, and the other catalog IDs. `/finder` opens the new shared finder workspace. Static files use immutable caching for hashed assets; HTML revalidates and API responses are not cached.
 
-| Variable | Default | Description |
+## Privacy and boundaries
+
+- Inputs, results, JWTs, and passwords are never saved by the interface. Optional localStorage stores only favorite/recent **tool IDs**. There are no external fonts, analytics, or tracking scripts.
+- Browser utilities make no API requests. Email and finder inputs are sent to this server; avoid logging request bodies or email query strings at the reverse proxy.
+- Email validity establishes syntax and mail routing, not mailbox ownership. Null MX records are treated as no mail routing. DNS transport failures produce `unknown`, not `invalid`.
+- Phone validity describes numbering rules, not an active subscriber. JWT decoding does **not** authenticate a token or verify a signature.
+- Markdown is sanitized with an explicit HTML allowlist. XML DTD/entities are blocked, YAML expansion is limited, CSV formula exports are escaped, and generators use cryptographic randomness.
+- Direct SMTP is enabled with a 25-second total budget. Public proxy probing remains opt-in; see the [email service documentation](docs/email-service.md) for their configuration.
+
+## Server configuration
+
+| Variable | Default | Purpose |
 | --- | --- | --- |
-| `PORT` | `8080` | HTTP port; Render injects this. |
-| `ENABLE_SMTP` | `false` | Enable direct SMTP (requires outbound port 25). |
-| `ENABLE_PROXY_SMTP` | `true` | Enable SMTP through the rotating SOCKS5 pool. |
-| `SMTP_FROM_EMAIL` | empty | Envelope sender used for `MAIL FROM`; use a domain you control for best results. |
-| `SMTP_HELLO_NAME` | empty | Hostname used for `EHLO`/`HELO`; use a domain you control. |
-| `SMTP_CONNECT_TIMEOUT` | `7s` | SMTP connect timeout. |
-| `SMTP_OPERATION_TIMEOUT` | `8s` | SMTP operation deadline. |
-| `SMTP_MAX_ATTEMPTS` | `3` | Maximum independent SMTP routes tried per request. |
-| `SMTP_CATCHALL_PROBES` | `2` | Number of random recipient probes after the target is accepted. |
-| `SMTP_NEGATIVE_CONSENSUS` | `2` | Independent recipient-missing replies required before marking invalid via public proxies. |
-| `SMTP_MAX_CONCURRENCY` | `4` | Maximum simultaneous mailbox probes. |
-| `PROXY_SOURCE_URL` | ProxyScrape free SOCKS5 API | Source for proxy candidates. |
-| `PROXY_MAX_CANDIDATES` | `40` | Candidates tested each refresh (Render currently overrides this higher). |
-| `PROXY_MAX_HEALTHY` | `8` | Maximum healthy proxies retained. |
-| `PROXY_PROBE_CONCURRENCY` | `12` | Concurrent health probes. |
-| `PROXY_PROBE_TIMEOUT` | `4s` | Per-proxy SMTP health timeout. |
-| `PROXY_REFRESH_INTERVAL` | `5m` | Healthy-pool refresh interval. |
-| `AUTO_UPDATE_DISPOSABLE` | `false` | AfterShip disposable-domain updater. |
+| `PORT` | `8080` | Internal HTTP port |
+| `VERIFY_MAX_CONCURRENCY` | `8` | Simultaneous email checks; valid range 1–64 |
+| `ENABLE_SMTP` | `true` | Direct SMTP; needs outbound port 25 |
+| `SMTP_PROXY_URL` | empty | Optional private SOCKS5 route, stored as a secret; preferred over public proxies |
+| `SMTP_TOTAL_TIMEOUT` | `25s` | Total mailbox verification budget |
+| `ENABLE_PROXY_SMTP` | `false` | Optional SOCKS5 mailbox probing |
+| `AUTO_UPDATE_DISPOSABLE` | `false` | Optional disposable-domain updates |
+| `TRUST_PROXY` | `false` | Trust forwarded client IPs only behind a proxy that overwrites those headers |
 
-## Notes on certainty
+Email verification allows 30 checks per IP per minute; discovery allows 10 per minute. These in-memory limits apply per instance. For multiple replicas, enforce a shared quota at the edge. Verification and SMTP concurrency, request bodies, headers, network timeouts, rate-limit state, and harvested-page cache size are bounded. The service handles SIGTERM/SIGINT with a ten-second graceful shutdown.
 
-Syntax + MX validation can establish that an address is structurally plausible and its domain is configured to receive email. It cannot prove that the mailbox exists.
+## Current cloud limitation
 
-Pattern inference is also probabilistic. An inferred address should be treated as a candidate unless it was found directly on a public company page.
-
-SMTP probing cannot bypass a provider that deliberately hides recipient existence. Catch-all domains can remain ambiguous. Definitive proof that a user controls an address still requires a delivered verification link/OTP or subsequent bounce processing.
-
-## Dependency
-
-The service pins `github.com/AfterShip/email-verifier` v1.5.0 or newer compatible version used by this project. v1.5.0 includes important SMTP-result and security fixes over v1.4.1.
+The onboarding machine's native DNS resolver refuses requests. The local frontend, server, and browser utilities work; real MX checks return an inconclusive DNS result, and public-page discovery cannot fetch company pages. The finder also uses direct HTTP/HTTPS sockets, which need a supported outbound route. Restore native DNS and that route before relying on these two server-assisted tools in this cloud environment. A passing `/healthz` reports process health, not external DNS readiness.

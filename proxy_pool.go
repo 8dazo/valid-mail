@@ -20,6 +20,7 @@ const defaultProxySource = "https://api.proxyscrape.com/v4/free-proxy-list/get?r
 
 type proxyPool struct {
 	mu            sync.RWMutex
+	refreshGate   chan struct{}
 	healthy       []string
 	next          int
 	lastRefresh   time.Time
@@ -42,6 +43,7 @@ type proxyPoolStats struct {
 
 func newProxyPool() *proxyPool {
 	return &proxyPool{
+		refreshGate:   make(chan struct{}, 1),
 		sourceURL:     envString("PROXY_SOURCE_URL", defaultProxySource),
 		maxCandidates: envInt("PROXY_MAX_CANDIDATES", 40, 1, 250),
 		maxHealthy:    envInt("PROXY_MAX_HEALTHY", 8, 1, 50),
@@ -125,8 +127,23 @@ func (p *proxyPool) stats() proxyPoolStats {
 	}
 }
 
-func (p *proxyPool) refresh() {
-	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
+func (p *proxyPool) refresh() { p.ensureReady(context.Background()) }
+
+// Refresh inside a request: serverless instances may suspend background work.
+func (p *proxyPool) ensureReady(parent context.Context) {
+	select {
+	case p.refreshGate <- struct{}{}:
+		defer func() { <-p.refreshGate }()
+	case <-parent.Done():
+		return
+	}
+	p.mu.RLock()
+	fresh := !p.lastRefresh.IsZero() && time.Since(p.lastRefresh) < p.refreshEvery
+	p.mu.RUnlock()
+	if fresh {
+		return
+	}
+	ctx, cancel := context.WithTimeout(parent, 10*time.Second)
 	defer cancel()
 
 	candidates, err := p.fetchCandidates(ctx)
@@ -214,7 +231,7 @@ func (p *proxyPool) setRefreshResult(healthy []string, err error) {
 	}
 	p.lastRefresh = time.Now().UTC()
 	if err != nil {
-		p.lastError = err.Error()
+		p.lastError = "SMTP proxy refresh unavailable; retry later."
 	} else {
 		p.lastError = ""
 	}
@@ -316,8 +333,14 @@ func (p *proxyPool) probe(parent context.Context, proxyURI string, targets []str
 		if err != nil {
 			continue
 		}
-		_ = conn.SetDeadline(time.Now().Add(p.probeTimeout))
+		deadline := time.Now().Add(p.probeTimeout)
+		if total, ok := parent.Deadline(); ok && total.Before(deadline) {
+			deadline = total
+		}
+		_ = conn.SetDeadline(deadline)
+		stop := context.AfterFunc(parent, func() { _ = conn.Close() })
 		line, readErr := bufio.NewReaderSize(conn, 512).ReadString('\n')
+		stop()
 		_ = conn.Close()
 		if readErr == nil && strings.HasPrefix(strings.TrimSpace(line), "220") {
 			return true
@@ -334,10 +357,16 @@ func dialProxyContext(ctx context.Context, dialer proxy.Dialer, target string) (
 		conn net.Conn
 		err  error
 	}
-	ch := make(chan result, 1)
+	ch := make(chan result)
 	go func() {
 		conn, err := dialer.Dial("tcp", target)
-		ch <- result{conn: conn, err: err}
+		select {
+		case ch <- result{conn: conn, err: err}:
+		case <-ctx.Done():
+			if conn != nil {
+				_ = conn.Close()
+			}
+		}
 	}()
 	select {
 	case <-ctx.Done():

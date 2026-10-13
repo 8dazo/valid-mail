@@ -18,12 +18,12 @@ type validityAssessment struct {
 }
 
 type validityChecks struct {
-	SyntaxValid bool   `json:"syntax_valid"`
-	HasMX       bool   `json:"has_mx"`
-	Disposable  bool   `json:"disposable"`
-	RoleAccount bool   `json:"role_account"`
-	FreeProvider bool  `json:"free_provider"`
-	Suggestion  string `json:"suggestion,omitempty"`
+	SyntaxValid  bool   `json:"syntax_valid"`
+	HasMX        bool   `json:"has_mx"`
+	Disposable   bool   `json:"disposable"`
+	RoleAccount  bool   `json:"role_account"`
+	FreeProvider bool   `json:"free_provider"`
+	Suggestion   string `json:"suggestion,omitempty"`
 }
 
 func assessValidity(result *emailverifier.Result) *validityAssessment {
@@ -32,12 +32,12 @@ func assessValidity(result *emailverifier.Result) *validityAssessment {
 	}
 
 	checks := validityChecks{
-		SyntaxValid: result.Syntax.Valid,
-		HasMX:       result.HasMxRecords,
-		Disposable:  result.Disposable,
-		RoleAccount: result.RoleAccount,
+		SyntaxValid:  result.Syntax.Valid,
+		HasMX:        result.HasMxRecords,
+		Disposable:   result.Disposable,
+		RoleAccount:  result.RoleAccount,
 		FreeProvider: result.Free,
-		Suggestion:  result.Suggestion,
+		Suggestion:   result.Suggestion,
 	}
 
 	assessment := &validityAssessment{
@@ -78,11 +78,17 @@ func assessValidity(result *emailverifier.Result) *validityAssessment {
 // response without changing the SMTP/reachability implementation.
 func (r verifyResponse) MarshalJSON() ([]byte, error) {
 	type responseWire verifyResponse
+	assessment := assessValidity(r.Verification)
+	if assessment != nil && r.DNSUnavailable {
+		assessment.Status = "unknown"
+		assessment.Reason = "dns_unavailable"
+		assessment.Evidence = "DNS verification is temporarily unavailable. The absence of a result does not establish that this domain cannot receive email."
+	}
 	return json.Marshal(struct {
 		responseWire
 		Validity *validityAssessment `json:"validity,omitempty"`
 	}{
 		responseWire: responseWire(r),
-		Validity:     assessValidity(r.Verification),
+		Validity:     assessment,
 	})
 }

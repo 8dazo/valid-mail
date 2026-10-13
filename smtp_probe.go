@@ -56,16 +56,29 @@ type singleSMTPProbe struct {
 
 var enhancedCodePattern = regexp.MustCompile(`\b[245]\.\d\.\d{1,3}\b`)
 
-func (app *application) assessReachability(email string) (*reachabilityAssessment, bool, bool) {
+func (app *application) assessReachability(parent context.Context, email string) (*reachabilityAssessment, bool, bool) {
+	budget := app.smtpTotalTimeout
+	if budget <= 0 {
+		budget = 25 * time.Second
+	}
+	ctx, cancel := context.WithTimeout(parent, budget)
+	defer cancel()
+	if app.smtpProxyURL != "" {
+		probe := app.executeSMTPProbe(ctx, email, app.smtpProxyURL)
+		assessment := assessmentFromProbe(probe)
+		assessment.Attempts = 1
+		return assessment, true, true
+	}
 	if app.proxySMTP && app.proxyPool != nil {
-		assessment, attempted := app.assessThroughProxies(email)
+		app.proxyPool.ensureReady(ctx)
+		assessment, attempted := app.assessThroughProxies(ctx, email)
 		if attempted || !app.directSMTP {
 			return assessment, attempted, attempted
 		}
 	}
 
 	if app.directSMTP {
-		probe := app.runSMTPProbe(email, "")
+		probe := app.executeSMTPProbe(ctx, email, "")
 		assessment := assessmentFromProbe(probe)
 		assessment.Attempts = 1
 		return assessment, true, false
@@ -80,13 +93,13 @@ func (app *application) assessReachability(email string) (*reachabilityAssessmen
 	}, false, false
 }
 
-func (app *application) assessThroughProxies(email string) (*reachabilityAssessment, bool) {
+func (app *application) assessThroughProxies(ctx context.Context, email string) (*reachabilityAssessment, bool) {
 	exclude := make(map[string]struct{})
 	var best *reachabilityAssessment
 	negativeConsensus := 0
 	attempts := 0
 
-	for attempts < app.maxSMTPAttempts {
+	for attempts < app.maxSMTPAttempts && ctx.Err() == nil {
 		proxyURI := app.proxyPool.nextProxy(exclude)
 		if proxyURI == "" {
 			break
@@ -94,7 +107,7 @@ func (app *application) assessThroughProxies(email string) (*reachabilityAssessm
 		exclude[proxyURI] = struct{}{}
 		attempts++
 
-		probe := app.runSMTPProbe(email, proxyURI)
+		probe := app.executeSMTPProbe(ctx, email, proxyURI)
 		candidate := assessmentFromProbe(probe)
 		candidate.Attempts = attempts
 
@@ -294,7 +307,14 @@ func assessmentFromProbe(p singleSMTPProbe) *reachabilityAssessment {
 	}
 }
 
-func (app *application) runSMTPProbe(email, proxyURI string) singleSMTPProbe {
+func (app *application) executeSMTPProbe(ctx context.Context, email, proxyURI string) singleSMTPProbe {
+	if app.smtpProbe != nil {
+		return app.smtpProbe(ctx, email, proxyURI)
+	}
+	return app.runSMTPProbe(ctx, email, proxyURI)
+}
+
+func (app *application) runSMTPProbe(parent context.Context, email, proxyURI string) singleSMTPProbe {
 	result := singleSMTPProbe{stage: "connect"}
 	at := strings.LastIndex(email, "@")
 	if at <= 0 || at == len(email)-1 {
@@ -303,8 +323,12 @@ func (app *application) runSMTPProbe(email, proxyURI string) singleSMTPProbe {
 	}
 	domain := strings.TrimSpace(email[at+1:])
 
-	ctx, cancel := context.WithTimeout(context.Background(), app.connectTimeout)
-	mx, err := net.DefaultResolver.LookupMX(ctx, domain)
+	ctx, cancel := context.WithTimeout(parent, app.connectTimeout)
+	lookup := app.smtpLookupMX
+	if lookup == nil {
+		lookup = net.DefaultResolver.LookupMX
+	}
+	mx, err := lookup(ctx, domain)
 	cancel()
 	if err != nil || len(mx) == 0 {
 		if err == nil {
@@ -317,12 +341,19 @@ func (app *application) runSMTPProbe(email, proxyURI string) singleSMTPProbe {
 	result.provider = providerFromMX(mx)
 
 	var lastErr error
-	for _, record := range mx {
+	for index, record := range mx {
+		if parent.Err() != nil {
+			lastErr = parent.Err()
+			break
+		}
+		if index >= 3 {
+			break
+		}
 		host := strings.TrimSuffix(record.Host, ".")
 		if host == "" {
 			continue
 		}
-		probe, err := app.probeMX(email, domain, host, proxyURI)
+		probe, err := app.probeMX(parent, email, domain, host, proxyURI)
 		if err == nil || probe.connected {
 			probe.provider = result.provider
 			return probe
@@ -333,17 +364,27 @@ func (app *application) runSMTPProbe(email, proxyURI string) singleSMTPProbe {
 	return result
 }
 
-func (app *application) probeMX(email, domain, host, proxyURI string) (singleSMTPProbe, error) {
+func (app *application) probeMX(parent context.Context, email, domain, host, proxyURI string) (singleSMTPProbe, error) {
 	result := singleSMTPProbe{mxHost: host, stage: "connect"}
-	ctx, cancel := context.WithTimeout(context.Background(), app.connectTimeout)
+	ctx, cancel := context.WithTimeout(parent, app.connectTimeout)
 	defer cancel()
 
-	conn, err := dialSMTPRoute(ctx, proxyURI, net.JoinHostPort(host, "25"), app.connectTimeout)
+	dial := app.smtpDial
+	if dial == nil {
+		dial = dialSMTPRoute
+	}
+	conn, err := dial(ctx, proxyURI, net.JoinHostPort(host, "25"), app.connectTimeout)
 	if err != nil {
 		result.err = err
 		return result, err
 	}
-	_ = conn.SetDeadline(time.Now().Add(app.operationTimeout))
+	deadline := time.Now().Add(app.operationTimeout)
+	if totalDeadline, ok := parent.Deadline(); ok && totalDeadline.Before(deadline) {
+		deadline = totalDeadline
+	}
+	_ = conn.SetDeadline(deadline)
+	stop := context.AfterFunc(parent, func() { _ = conn.Close() })
+	defer stop()
 
 	client, err := smtp.NewClient(conn, host)
 	if err != nil {
@@ -375,9 +416,7 @@ func (app *application) probeMX(email, domain, host, proxyURI string) (singleSMT
 	}
 
 	fromEmail := app.fromEmail
-	if fromEmail == "" {
-		fromEmail = "user@example.org"
-	}
+	// An empty address uses the standard null envelope sender, never an invented identity.
 	result.stage = "mail_from"
 	if err := client.Mail(fromEmail); err != nil {
 		result.err = err
@@ -423,6 +462,26 @@ func (app *application) probeMX(email, domain, host, proxyURI string) (singleSMT
 }
 
 func dialSMTPRoute(ctx context.Context, proxyURI, target string, timeout time.Duration) (net.Conn, error) {
+	host, port, err := net.SplitHostPort(target)
+	if err != nil || port != "25" {
+		return nil, errors.New("invalid SMTP destination")
+	}
+	ips, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+	if err != nil {
+		return nil, err
+	}
+	var selected net.IP
+	for _, item := range ips {
+		if isPublicIP(item.IP) {
+			selected = item.IP
+			break
+		}
+	}
+	if selected == nil {
+		return nil, errors.New("SMTP destination is not public")
+	}
+	// Connect to the vetted IP to prevent MX-based SSRF and DNS rebinding.
+	target = net.JoinHostPort(selected.String(), port)
 	if proxyURI == "" {
 		d := &net.Dialer{Timeout: timeout}
 		return d.DialContext(ctx, "tcp", target)
@@ -463,6 +522,9 @@ func replyFromError(err error, email string) smtpReply {
 	}
 	enhanced := enhancedCodePattern.FindString(message)
 	category := classifySMTPReply(code, enhanced, message)
+	if code == 0 {
+		message = "SMTP transport did not complete."
+	}
 	message = sanitizeSMTPMessage(message, email)
 	return smtpReply{Code: code, EnhancedCode: enhanced, Category: category, Message: message}
 }
@@ -477,7 +539,7 @@ func classifySMTPReply(code int, enhanced, message string) string {
 		"does not exist", "doesn't exist", "no such user", "user unknown", "unknown user",
 		"invalid recipient", "unknown recipient", "recipient unknown", "recipient not found",
 		"mailbox not found", "no mailbox", "no such mailbox", "invalid mailbox",
-		"unknown local part", "address rejected", "invalid address", "could not be found",
+		"unknown local part", "invalid address", "could not be found",
 		"no such recipient", "no such person", "email doesn't exist", "recipient is not exist",
 	}
 	fullHints := []string{"mailbox full", "over quota", "quota exceeded", "out of storage", "storage space", "too many messages"}
@@ -486,7 +548,20 @@ func classifySMTPReply(code int, enhanced, message string) string {
 	greyHints := []string{"greylist", "grey list", "try again later", "temporarily deferred", "temporary deferral"}
 	rateHints := []string{"rate limit", "rate that", "too many", "throttl", "too fast"}
 
-	if enhanced == "5.1.1" || hasAnySMTPHint(m, missingHints) {
+	// Policy and temporary responses never establish a missing recipient.
+	if strings.HasPrefix(enhanced, "5.7.") || strings.HasPrefix(enhanced, "4.7.") || hasAnySMTPHint(m, blockedHints) {
+		return "blocked"
+	}
+	if hasAnySMTPHint(m, greyHints) {
+		return "greylisted"
+	}
+	if code == 421 || hasAnySMTPHint(m, rateHints) {
+		return "rate_limited"
+	}
+	if code >= 400 && code < 500 && enhanced != "4.2.2" {
+		return "temporary"
+	}
+	if code >= 500 && code < 600 && (enhanced == "5.1.1" || hasAnySMTPHint(m, missingHints)) {
 		return "recipient_missing"
 	}
 	if enhanced == "5.2.2" || enhanced == "4.2.2" || code == 552 || hasAnySMTPHint(m, fullHints) {
