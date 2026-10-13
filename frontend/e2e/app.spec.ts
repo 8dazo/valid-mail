@@ -21,7 +21,22 @@ test("pastel landing shortcuts, FAQs and footer open the real workspaces", async
   await expect(
     page.getByRole("heading", { name: "Markdown & README preview." }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "All tools", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Explore all tools", exact: true })
+    .click();
+  await expect(
+    page.getByRole("searchbox", { name: "Search tools" }),
+  ).toBeInViewport();
+  await page
+    .getByRole("button", { name: "README preview", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Markdown & README preview." }),
+  ).toBeVisible();
+  await page.keyboard.press("Control+k");
+  await expect(
+    page.getByRole("searchbox", { name: "Search tools" }),
+  ).toBeFocused();
   const question = page
     .locator(".faq-list summary")
     .filter({ hasText: "Does my data leave my browser?" });

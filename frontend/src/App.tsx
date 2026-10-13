@@ -856,6 +856,7 @@ function AppContent() {
   const [recent, setRecent] = useState(() => readList(storageKeys.recent));
   const [mobileMenu, setMobileMenu] = useState(false);
   const searchInput = useRef<HTMLInputElement>(null);
+  const sectionFrame = useRef<number | null>(null);
   const tool = tools.find((item) => item.id === route);
   const reduced = useReducedMotion();
   useEffect(() => {
@@ -878,36 +879,57 @@ function AppContent() {
     saveList(storageKeys.recent, recent);
   }, [recent]);
   const navigate = useCallback((id: string | null) => {
+    if (sectionFrame.current !== null)
+      cancelAnimationFrame(sectionFrame.current);
+    sectionFrame.current = null;
     history.pushState({}, "", id ? `/tools/${id}` : "/");
     setRoute(id);
     setMobileMenu(false);
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
-  const goSection = (id: string) => {
-    if (route) navigate(null);
-    setMobileMenu(false);
-    setTimeout(
-      () =>
-        document
-          .getElementById(id)
-          ?.scrollIntoView({ behavior: reduced ? "instant" : "smooth" }),
-      30,
-    );
-  };
+  const goSection = useCallback(
+    (id: string, focusSearch = false) => {
+      if (sectionFrame.current !== null)
+        cancelAnimationFrame(sectionFrame.current);
+      if (route) navigate(null);
+      setMobileMenu(false);
+      let attempts = 0;
+      // The outgoing workspace animates before the landing sections mount.
+      const scroll = () => {
+        const section = document.getElementById(id);
+        if (section) {
+          sectionFrame.current = null;
+          section.scrollIntoView({
+            behavior: reduced || focusSearch ? "instant" : "smooth",
+          });
+          if (focusSearch) searchInput.current?.focus({ preventScroll: true });
+        } else if (attempts++ < 120) {
+          sectionFrame.current = requestAnimationFrame(scroll);
+        } else {
+          sectionFrame.current = null;
+        }
+      };
+      sectionFrame.current = requestAnimationFrame(scroll);
+    },
+    [route, navigate, reduced],
+  );
+  useEffect(
+    () => () => {
+      if (sectionFrame.current !== null)
+        cancelAnimationFrame(sectionFrame.current);
+    },
+    [],
+  );
   useEffect(() => {
     const shortcut = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
-        if (route) navigate(null);
-        setTimeout(() => {
-          document.getElementById("tools")?.scrollIntoView();
-          searchInput.current?.focus();
-        }, 30);
+        goSection("tools", true);
       }
     };
     window.addEventListener("keydown", shortcut);
     return () => window.removeEventListener("keydown", shortcut);
-  }, [route, navigate]);
+  }, [goSection]);
   const favorite = (id: string) =>
     setFavorites((previous) =>
       previous.includes(id)
