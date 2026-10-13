@@ -8,11 +8,13 @@ Validated on 13 October 2026 using Node 24.19.0 and checksum-verified Go 1.27.2.
 | --- | --- | --- |
 | TypeScript and Vite production build | Passed | Strict types, Go/WASM generation, fingerprinted assets and embedded frontend output |
 | Vitest | **22 passed** | Every local example through the real native Go core; conversion round trips, malformed input, known hash vectors, Unicode, passwords/IDs, sanitizer boundaries, API errors and optional browser storage |
-| Playwright, local production bundle | **28 passed** | Desktop and mobile Chromium; all 37 local examples through the actual WASM worker, stable labels, search/favorites, responsive layouts and reduced motion |
-| Playwright, live Vercel staging | **28 passed** | The same desktop/mobile suite through TLS-verifying egress; real deployed assets, worker startup/reuse and local tool execution |
+| Playwright, local production bundle | **30 passed** | Desktop and mobile Chromium; all 37 local examples through the actual WASM worker, stable labels, search/favorites, responsive layouts and reduced motion |
+| Playwright, live Vercel staging | **30 passed** | The same desktop/mobile suite through TLS-verifying egress; real deployed assets, worker startup/reuse and local tool execution |
 | Go race tests | Passed | Toolkit correctness/bounds, server APIs, DNS, local SMTP protocol fixtures, private-destination guards, concurrency, deadlines/cancellation, routing and security headers |
 | `go vet` and `go mod verify` | Passed | Static checks and dependency checksum verification |
 | README generation check | Passed | Counts, catalog names and stack versions match application source |
+
+The latest pastel redesign retains the original coastal hero, heading and header. Two additional desktop/mobile checks exercise its workflow shortcuts, real tool navigation from the footer, keyboard FAQ toggles and collection CTA.
 
 The browser suite also checks fenced Markdown syntax highlighting and monospace/whitespace styling, GFM tables/task lists/details, standalone HTML downloads, image placeholders, UTF-8 file import, CSV pagination, layout switches, invalidated stale results, real barcode PNG/gzip bytes, regex groups, color swatches, conditional bcrypt controls, API cancellation and reuse of one local engine without API uploads. Email/finder rendering uses controlled responses where required, alongside the independent live API checks below.
 
@@ -24,7 +26,7 @@ Known-vector and boundary tests cover HMAC/SHA, gzip round trips and expansion l
 - The four-stage Docker image built with verified Go modules and locked npm dependencies. The injected HTTPS proxy and transient public trust bundle retained TLS verification; proxy credentials were not copied into the image.
 - The image ran as `nonroot:nonroot`, with a read-only filesystem, no capabilities and resource limits. Health, embedded HTML/deep links, invalid-email API handling and the compressed WASM asset passed. SIGTERM produced exit code zero without an OOM.
 - WASM responses used `application/wasm`, gzip and immutable fingerprinted caching; decompressed bytes had the correct WASM magic. The tested first-load transfer was approximately 6.6 MiB compressed (approximately 28 MiB uncompressed). It loads on demand and is reused during SPA tool navigation.
-- A fresh Vercel staging deployment built with the actual Vercel Go SDK and served the upgraded suite. All 28 browser checks passed there. Anonymous previews expire unless claimed; this is staging evidence, not a permanent release.
+- A fresh Vercel staging deployment built with the actual Vercel Go SDK and served the upgraded suite. All 30 browser checks passed there. Anonymous previews expire unless claimed; this is staging evidence, not a permanent release.
 
 The currently claimed original project is https://temporary-sonic-jade-y0jexj7.vercel.app. Its old anonymous token is invalid and the observed version still has SMTP disabled. Updating that account-owned project needs owner authentication or its Git deployment integration. No Render dashboard/log credentials or hosted Render URL were available; a successful local Render build does not prove a hosted Render deployment.
 

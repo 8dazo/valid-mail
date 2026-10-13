@@ -1,6 +1,46 @@
 import { expect, test } from "./fixtures";
 import { tools } from "../src/catalog";
 
+test("pastel landing shortcuts, FAQs and footer open the real workspaces", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await expect(page.locator(".studio-stats")).toContainText(
+    String(tools.length),
+  );
+  await expect(page.locator(".studio-feature")).toHaveCount(3);
+  await page
+    .getByRole("button", { name: "Make a QR code", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "QR code generator." }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "README preview", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Markdown & README preview." }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "All tools", exact: true }).click();
+  const question = page
+    .locator(".faq-list summary")
+    .filter({ hasText: "Does my data leave my browser?" });
+  await question.focus();
+  await question.press("Enter");
+  await expect(question.locator("..")).toHaveAttribute("open", "");
+  await expect(question.locator("..").locator("p")).toContainText(
+    "Email verification",
+  );
+  await question.press("Enter");
+  await expect(question.locator("..")).not.toHaveAttribute("open", "");
+  await page
+    .getByRole("button", { name: "Find your next shortcut", exact: true })
+    .click();
+  await expect(
+    page.getByRole("searchbox", { name: "Search tools" }),
+  ).toBeInViewport();
+});
+
 test("landing, local search, favorites, and keyboard navigation work", async ({
   page,
 }) => {

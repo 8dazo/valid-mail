@@ -12,7 +12,7 @@ if (!go) throw new Error("Missing pinned Go toolchain in go.mod.");
 const safe = (value) => value.replaceAll("|", "\\|").replaceAll("\n", " ");
 const browserTools = tools.filter((tool) => !tool.server).length;
 const sections = {
-  overview: `**${tools.length} utilities · ${browserTools} run in your browser · ${tools.length - browserTools} use the Go API**\n\nWeMe is a calm place to validate, convert, and create. It brings practical open-source tools into consistent workspaces, with a coastal landing page, self-hosted fonts, and a React + TypeScript interface.`,
+  overview: `**${tools.length} utilities · ${browserTools} run in your browser · ${tools.length - browserTools} use the Go API**\n\nWeMe is a calm place to validate, convert, and create. It brings practical open-source tools into consistent workspaces, with a coastal landing page, pastel studio cards, illustrated shortcuts, self-hosted fonts, and a React + TypeScript interface.`,
   stack: `| Frontend | Backend | Build |\n| --- | --- | --- |\n| React ${manifest.dependencies.react} · TypeScript ${manifest.devDependencies.typescript} | Go ${go} | Node ${node} · Vite ${manifest.devDependencies.vite} |`,
   tools: `| Category | Tools |\n| --- | --- |\n${categories.map((category) => `| ${category} | ${tools.filter((tool) => tool.category === category).map((tool) => safe(tool.name)).join(" · ")} |`).join("\n")}\n\n${browserTools} tools execute locally. Email validation and work-email discovery call the same-origin API.`,
 };

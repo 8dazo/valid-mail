@@ -45,8 +45,6 @@ import {
   WrapText,
   Maximize2,
   LockKeyhole,
-  Laptop,
-  Heart,
   Command,
   ExternalLink,
 } from "lucide-react";
@@ -61,6 +59,7 @@ import {
   GeneratedValues,
   MarkdownPreview,
 } from "./ResultViews";
+import { LandingIntro, LandingOutro, StudioFooter } from "./Landing";
 import "./fonts.css";
 import "@fontsource/instrument-serif/latin-400.css";
 import "@fontsource/instrument-serif/latin-400-italic.css";
@@ -145,7 +144,7 @@ function ToolCard({
   const reduced = useReducedMotion();
   return (
     <motion.article
-      className="tool-card"
+      className={`tool-card card-${tool.color}`}
       initial={reduced ? false : { opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, delay: Math.min(index * 0.025, 0.25) }}
@@ -1094,6 +1093,11 @@ function AppContent() {
                 </div>
               </div>
             </section>
+            <LandingIntro
+              count={tools.length}
+              localCount={tools.filter((item) => !item.server).length}
+              onOpen={navigate}
+            />
             <section
               className="tool-directory container"
               id="tools"
@@ -1105,9 +1109,9 @@ function AppContent() {
                     A LITTLE HELP GOES A LONG WAY
                   </span>
                   <h2 id="tools-title">
-                    Find your next <em>little shortcut.</em>
+                    A good tool for <em>every little thing.</em>
                   </h2>
-                  <p>Thoughtfully made. Ready when you are.</p>
+                  <p>Find the one you need. Make something happen.</p>
                 </div>
                 <span className="tool-count">
                   {tools.length} tools, endless possibilities <ArrowDownMark />
@@ -1217,154 +1221,19 @@ function AppContent() {
                 your browser. Your data stays yours.
               </div>
             </section>
-            <section className="how-section" id="how-it-works">
-              <div className="container">
-                <div className="section-heading">
-                  <div>
-                    <span className="eyebrow-label">
-                      LESS SETUP. MORE DOING.
-                    </span>
-                    <h2>
-                      From “I need to…”
-                      <br />
-                      to <em>“already done.”</em>
-                    </h2>
-                  </div>
-                  <p className="section-intro">
-                    No complicated workflows. No account to create.
-                    <br />
-                    Just open a tool and get on with your day.
-                  </p>
-                </div>
-                <div className="steps">
-                  {[
-                    {
-                      number: "01",
-                      title: "Find your little helper.",
-                      text: "Search the collection or pick a category. There’s a shortcut for that.",
-                    },
-                    {
-                      number: "02",
-                      title: "Bring what you’re working on.",
-                      text: "Paste your text, data, or link. Not sure where to start? Try an example.",
-                    },
-                    {
-                      number: "03",
-                      title: "Make something happen.",
-                      text: "Get your result. Copy it, download it, and keep your ideas moving.",
-                    },
-                  ].map((step) => (
-                    <div key={step.number}>
-                      <span>{step.number}</span>
-                      <h3>{step.title}</h3>
-                      <p>{step.text}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </section>
-            <section className="open-source-section container" id="open-source">
-              <div className="open-source-copy">
-                <span className="eyebrow-label">GOOD TOOLS. GOOD ROOTS.</span>
-                <h2>
-                  Open by nature.
-                  <br />
-                  <em>Useful by design.</em>
-                </h2>
-                <p>
-                  WeMe brings trusted open-source libraries into one thoughtful
-                  home. Real tools, transparent foundations, and a little less
-                  friction in your everyday work.
-                </p>
-                <a
-                  className="button light"
-                  href="https://github.com/8dazo/valid-mail"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Explore the source <Github size={18} />
-                </a>
-              </div>
-              <div className="source-garden">
-                <div className="garden-top">
-                  <span>
-                    <Github size={17} /> The open-source garden
-                  </span>
-                  <span className="live-dot" />
-                </div>
-                {tools
-                  .filter((item) => item.source && item.id !== "finder")
-                  .slice(0, 8)
-                  .map((item) => (
-                    <a
-                      key={item.id}
-                      href={item.source}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <ToolIcon tool={item} size={17} />
-                      <span>{item.library}</span>
-                      <ArrowUpRight size={16} />
-                    </a>
-                  ))}
-                <div className="garden-bottom">
-                  <Heart size={14} /> Made possible by open-source maintainers.
-                </div>
-              </div>
-            </section>
-            <section className="about-section" id="about">
-              <div className="container">
-                <span className="eyebrow-label">
-                  A CALMER CORNER OF THE INTERNET
-                </span>
-                <h2>
-                  Big ideas deserve
-                  <br />
-                  <em>small, simple tools.</em>
-                </h2>
-                <p>
-                  WeMe is a collection of everyday utilities for builders,
-                  writers, and curious people. No noise. Just the little things
-                  that help you do your thing.
-                </p>
-                <div className="about-values">
-                  <span>
-                    <Laptop size={17} /> Browser first
-                  </span>
-                  <span>
-                    <LockKeyhole size={17} /> No saved inputs
-                  </span>
-                  <span>
-                    <Sparkles size={17} /> Always approachable
-                  </span>
-                </div>
-                <button
-                  className="button primary"
-                  onClick={() => goSection("tools")}
-                >
-                  Find your little shortcut
-                  <ArrowRight size={18} />
-                </button>
-              </div>
-            </section>
+            <LandingOutro
+              count={tools.length}
+              localCount={tools.filter((item) => !item.server).length}
+              onSection={goSection}
+            />
           </motion.main>
         )}
       </AnimatePresence>
-      <footer className="site-footer container">
-        <Brand onClick={() => navigate(null)} />
-        <span>A little less friction. A little more you.</span>
-        <div>
-          <a
-            href="https://github.com/8dazo/valid-mail"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="WeMe on GitHub"
-          >
-            <Github size={19} />
-          </a>
-          <span>© {new Date().getFullYear()} WeMe</span>
-        </div>
-      </footer>
+      <StudioFooter
+        brand={<Brand onClick={() => navigate(null)} />}
+        onSection={goSection}
+        onOpen={navigate}
+      />
     </>
   );
 }

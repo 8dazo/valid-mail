@@ -12,12 +12,13 @@
 <!-- generated:overview:start -->
 **39 utilities · 37 run in your browser · 2 use the Go API**
 
-WeMe is a calm place to validate, convert, and create. It brings practical open-source tools into consistent workspaces, with a coastal landing page, self-hosted fonts, and a React + TypeScript interface.
+WeMe is a calm place to validate, convert, and create. It brings practical open-source tools into consistent workspaces, with a coastal landing page, pastel studio cards, illustrated shortcuts, self-hosted fonts, and a React + TypeScript interface.
 <!-- generated:overview:end -->
 
 ## Made for the small things
 
 - **Find your tool quickly.** Search, categories, favorites, and recent tool IDs.
+- **Feel at home.** Pastel workspaces, clear results, illustrated shortcuts, and a keyboard-friendly FAQ.
 - **Start with an example.** Clear inputs, useful errors, copy, download, and reset.
 - **Use it anywhere.** Responsive workspaces, keyboard navigation, and reduced-motion support.
 - **Keep local work local.** Browser utilities don't upload inputs, results, passwords, or tokens.
