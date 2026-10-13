@@ -26,4 +26,4 @@ All sixteen browser checks also passed against the staging deployment through TL
 
 The SMTP percentage and evidence UI is restored. Local SMTP protocol fixtures verify recipient acceptance with random-recipient rejection (96% verdict confidence), catch-all acceptance, missing recipients, policy blocks, temporary responses and TLS failure. Request cancellation and total deadlines are enforced. A private SOCKS5 route can be supplied securely using SMTP_PROXY_URL for reliable outbound SMTP. No message body is sent. Mailbox existence stays unknown when no route completes; the UI shows “Not measured” rather than an invented percentage.
 
-CI is configured for the next push. No remote CI completion or fresh cloud-task restoration is claimed by this report.
+GitHub's published run summaries confirm that both commits passed remote CI: [af5b9b5](https://github.com/8dazo/valid-mail/actions/runs/38362572569) and [3a06b9d](https://github.com/8dazo/valid-mail/actions/runs/38383333666). The latter exercises the Render build script from a clean runner. These results do not establish a successful Render-hosted deployment or fresh cloud-task restoration.

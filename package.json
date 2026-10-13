@@ -1,8 +1,12 @@
 {
   "name": "weme-deployment",
   "private": true,
-  "engines": { "node": "24.x" },
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
-    "build": "npm run build --prefix frontend"
+    "build": "npm run build --prefix frontend",
+    "docs:update": "node scripts/readme.mjs --write",
+    "docs:check": "node scripts/readme.mjs --check"
   }
 }
