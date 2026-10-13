@@ -13,3 +13,6 @@ bin/
 .env
 .env.*
 !.env.example
+
+frontend/public/wasm/
+frontend/src/generated/

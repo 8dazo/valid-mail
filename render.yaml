@@ -14,7 +14,7 @@ services:
       - key: NODE_VERSION
         value: "24.19.0"
       - key: ENABLE_SMTP
-        value: "false"
+        value: "true"
       - key: ENABLE_PROXY_SMTP
         value: "false"
       - key: AUTO_UPDATE_DISPOSABLE

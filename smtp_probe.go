@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/net/idna"
 	"golang.org/x/net/proxy"
 )
 
@@ -321,7 +322,13 @@ func (app *application) runSMTPProbe(parent context.Context, email, proxyURI str
 		result.err = errors.New("invalid email")
 		return result
 	}
-	domain := strings.TrimSpace(email[at+1:])
+	domain, domainErr := idna.Lookup.ToASCII(strings.TrimSpace(email[at+1:]))
+	if domainErr != nil {
+		result.err = domainErr
+		return result
+	}
+	domain = strings.ToLower(domain)
+	email = email[:at+1] + domain
 
 	ctx, cancel := context.WithTimeout(parent, app.connectTimeout)
 	lookup := app.smtpLookupMX
@@ -470,32 +477,69 @@ func dialSMTPRoute(ctx context.Context, proxyURI, target string, timeout time.Du
 	if err != nil {
 		return nil, err
 	}
-	var selected net.IP
-	for _, item := range ips {
-		if isPublicIP(item.IP) {
-			selected = item.IP
-			break
-		}
-	}
-	if selected == nil {
+	targets := publicSMTPDestinations(ips, port)
+	if len(targets) == 0 {
 		return nil, errors.New("SMTP destination is not public")
 	}
-	// Connect to the vetted IP to prevent MX-based SSRF and DNS rebinding.
-	target = net.JoinHostPort(selected.String(), port)
-	if proxyURI == "" {
-		d := &net.Dialer{Timeout: timeout}
-		return d.DialContext(ctx, "tcp", target)
+	var proxyDialer proxy.Dialer
+	if proxyURI != "" {
+		u, err := url.Parse(proxyURI)
+		if err != nil {
+			return nil, err
+		}
+		proxyDialer, err = proxy.FromURL(u, &net.Dialer{Timeout: timeout})
+		if err != nil {
+			return nil, err
+		}
 	}
-	u, err := url.Parse(proxyURI)
-	if err != nil {
-		return nil, err
+	budget, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	var lastErr error
+	for index, target := range targets {
+		if budget.Err() != nil {
+			return nil, budget.Err()
+		}
+		deadline, _ := budget.Deadline()
+		attemptBudget := time.Until(deadline) / time.Duration(len(targets)-index)
+		if attemptBudget > 3*time.Second {
+			attemptBudget = 3 * time.Second
+		}
+		attempt, stop := context.WithTimeout(budget, attemptBudget)
+		var conn net.Conn
+		if proxyDialer == nil {
+			conn, lastErr = (&net.Dialer{Timeout: attemptBudget}).DialContext(attempt, "tcp", target)
+		} else {
+			conn, lastErr = dialProxyContext(attempt, proxyDialer, target)
+		}
+		stop()
+		if lastErr == nil {
+			return conn, nil
+		}
 	}
-	forward := &net.Dialer{Timeout: timeout}
-	dialer, err := proxy.FromURL(u, forward)
-	if err != nil {
-		return nil, err
+	return nil, lastErr
+}
+
+// Pin vetted destinations against DNS rebinding and prefer IPv4 on cloud hosts
+// without IPv6 egress. Keep alternate public IPs as bounded fallback routes.
+func publicSMTPDestinations(ips []net.IPAddr, port string) []string {
+	targets := []string{}
+	seen := map[string]bool{}
+	for _, ipv4 := range []bool{true, false} {
+		for _, item := range ips {
+			if !isPublicIP(item.IP) || (item.IP.To4() != nil) != ipv4 {
+				continue
+			}
+			address := net.JoinHostPort(item.IP.String(), port)
+			if !seen[address] {
+				seen[address] = true
+				targets = append(targets, address)
+				if len(targets) >= 6 {
+					return targets
+				}
+			}
+		}
 	}
-	return dialProxyContext(ctx, dialer, target)
+	return targets
 }
 
 func rcptReply(client *smtp.Client, address string) smtpReply {
@@ -539,7 +583,7 @@ func classifySMTPReply(code int, enhanced, message string) string {
 		"does not exist", "doesn't exist", "no such user", "user unknown", "unknown user",
 		"invalid recipient", "unknown recipient", "recipient unknown", "recipient not found",
 		"mailbox not found", "no mailbox", "no such mailbox", "invalid mailbox",
-		"unknown local part", "invalid address", "could not be found",
+		"unknown local part",
 		"no such recipient", "no such person", "email doesn't exist", "recipient is not exist",
 	}
 	fullHints := []string{"mailbox full", "over quota", "quota exceeded", "out of storage", "storage space", "too many messages"}
@@ -551,6 +595,12 @@ func classifySMTPReply(code int, enhanced, message string) string {
 	// Policy and temporary responses never establish a missing recipient.
 	if strings.HasPrefix(enhanced, "5.7.") || strings.HasPrefix(enhanced, "4.7.") || hasAnySMTPHint(m, blockedHints) {
 		return "blocked"
+	}
+	if enhanced == "5.2.2" || enhanced == "4.2.2" || code == 552 || (code >= 400 && hasAnySMTPHint(m, fullHints)) {
+		return "mailbox_full"
+	}
+	if enhanced == "5.2.1" {
+		return "disabled"
 	}
 	if hasAnySMTPHint(m, greyHints) {
 		return "greylisted"

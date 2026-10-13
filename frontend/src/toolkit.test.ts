@@ -1,18 +1,37 @@
+import { execFileSync } from "node:child_process";
+import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { runTool, securePassword } from "./toolkit";
+import { runTool } from "./toolkit";
 import { tools } from "./catalog";
 import { readList, saveList } from "./storage";
 
+// Exercise the real Go core through its native CLI in jsdom. Browser tests use
+// the actual WebAssembly worker; no duplicate tool implementation is mocked.
+vi.mock("./go-tools", () => ({
+  runGoTool: async (tool: string, values: Record<string, string>) => {
+    const binary = resolve(process.cwd(), "../bin/weme-toolkit");
+    const response = JSON.parse(
+      execFileSync(binary, {
+        input: JSON.stringify({ tool, values }) + "\n",
+        encoding: "utf8",
+        timeout: 10_000,
+      }),
+    );
+    if (response.error) throw new Error(response.error);
+    return response.result;
+  },
+}));
+
 describe("the complete tool collection", () => {
-  it("has at least 15 unique tools with working local examples", async () => {
-    expect(tools.length).toBeGreaterThanOrEqual(15);
+  it("has 39 unique tools with working local Go examples", async () => {
+    expect(tools.length).toBe(39);
     expect(new Set(tools.map((tool) => tool.id)).size).toBe(tools.length);
     for (const tool of tools.filter((tool) => !tool.server)) {
       const result = await runTool(tool.id, tool.example);
       expect(result.text, tool.name).toBeTypeOf("string");
       expect(result.text.length, tool.name).toBeGreaterThan(0);
     }
-  });
+  }, 30_000);
 });
 describe("data conversion", () => {
   it("formats and repairs JSON, and rejects malformed JSON in strict mode", async () => {
@@ -192,7 +211,14 @@ describe("validation and inspection", () => {
 });
 describe("generators and text tools", () => {
   it("generates secure passwords with every character group and enforces limits", async () => {
-    const passwords = Array.from({ length: 30 }, () => securePassword(24));
+    const passwords = [
+      ...(await runTool("password", { length: "24", count: "20" })).text.split(
+        "\n",
+      ),
+      ...(await runTool("password", { length: "24", count: "10" })).text.split(
+        "\n",
+      ),
+    ];
     expect(new Set(passwords).size).toBe(30);
     for (const password of passwords) {
       expect(password).toHaveLength(24);
@@ -244,7 +270,11 @@ describe("generators and text tools", () => {
       input:
         "# Safe\n<script>alert(1)</script><img src=x onerror=alert(1)><svg onload=alert(1)></svg>\n[bad](javascript:alert%281%29)",
     });
-    expect(result.html).toContain("<h1>Safe</h1>");
+    expect(
+      new DOMParser()
+        .parseFromString(result.html ?? "", "text/html")
+        .querySelector("h1")?.textContent,
+    ).toBe("Safe");
     expect(result.html).not.toMatch(
       /<script|<img|<svg|onerror|onload|href="javascript:/i,
     );

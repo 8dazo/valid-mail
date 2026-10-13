@@ -39,6 +39,11 @@ import {
   Clock,
   CaseSensitive,
   SearchCheck,
+  Columns2,
+  Rows3,
+  FileUp,
+  WrapText,
+  Maximize2,
   LockKeyhole,
   Laptop,
   Heart,
@@ -50,6 +55,12 @@ import { categories, initialValues, tools } from "./catalog";
 import type { Category, Tool } from "./catalog";
 import { readList, saveList, storageKeys } from "./storage";
 import type { ToolResult } from "./toolkit";
+import {
+  CodeBlock,
+  DataTable,
+  GeneratedValues,
+  MarkdownPreview,
+} from "./ResultViews";
 import "./fonts.css";
 import "@fontsource/instrument-serif/latin-400.css";
 import "@fontsource/instrument-serif/latin-400-italic.css";
@@ -75,6 +86,11 @@ const iconMap: Record<string, LucideIcon> = {
   Clock,
   CaseSensitive,
   SearchCheck,
+  Columns2,
+  Rows3,
+  FileUp,
+  WrapText,
+  Maximize2,
 };
 const currentRoute = () => {
   const path = location.pathname;
@@ -177,6 +193,13 @@ function ToolWorkspace({
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState("");
   const [outputView, setOutputView] = useState<"preview" | "raw">("preview");
+  const [stacked, setStacked] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [wrapCode, setWrapCode] = useState(false);
+  const [inputError, setInputError] = useState("");
+  const [inputFile, setInputFile] = useState("");
+  const [cancelled, setCancelled] = useState(false);
+  const fileInput = useRef<HTMLInputElement | null>(null);
   const controller = useRef<AbortController | null>(null);
   const generation = useRef(0);
   const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -197,6 +220,9 @@ function ToolWorkspace({
     setRunning(false);
     setCopied(false);
     setCopyError("");
+    setInputError("");
+    setInputFile("");
+    setCancelled(false);
   };
   const execute = async (event?: React.FormEvent) => {
     event?.preventDefault();
@@ -205,9 +231,14 @@ function ToolWorkspace({
     const run = ++generation.current;
     const timeout = setTimeout(
       () => controller.current?.abort(),
-      ["finder", "email"].includes(tool.id) ? 45_000 : 30_000,
+      ["finder", "email"].includes(tool.id)
+        ? 45_000
+        : tool.engine === "go"
+          ? 75_000
+          : 30_000,
     );
     setRunning(true);
+    setCancelled(false);
     setError("");
     setCopyError("");
     setResult(null);
@@ -249,19 +280,116 @@ function ToolWorkspace({
   };
   const download = () => {
     if (!result) return;
+    const body = result.binary
+      ? Uint8Array.from(atob(result.binary.base64), (char) =>
+          char.charCodeAt(0),
+        )
+      : result.mime === "image/png" &&
+          result.image?.startsWith("data:image/png;base64,")
+        ? Uint8Array.from(atob(result.image.split(",")[1]), (char) =>
+            char.charCodeAt(0),
+          )
+        : result.text;
     const url = URL.createObjectURL(
-      new Blob([result.text], {
-        type: result.mime ?? "text/plain;charset=utf-8",
-      }),
+      new Blob([body], { type: result.mime ?? "text/plain;charset=utf-8" }),
     );
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = result.filename ?? `${tool.id}-result.txt`;
+    anchor.download =
+      result.binary?.filename ?? result.filename ?? `${tool.id}-result.txt`;
     anchor.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
+  const updateValues = (
+    update: React.SetStateAction<Record<string, string>>,
+  ) => {
+    generation.current++;
+    controller.current?.abort();
+    setRunning(false);
+    setResult(null);
+    setError("");
+    setCopyError("");
+    setCancelled(false);
+    setInputError("");
+    setValues(update);
+  };
+  const loadFile = async (file?: File) => {
+    if (!file) return;
+    if (file.size > 400_000) {
+      setInputError("Choose a UTF-8 text file smaller than 400 KB.");
+      return;
+    }
+    try {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      if (tool.id === "gzip" && file.name.toLowerCase().endsWith(".gz")) {
+        if (bytes.length > 75_000)
+          throw new Error(
+            "Use a gzip file smaller than 75 KB; decoded text is limited to 1 MB.",
+          );
+        let binary = "";
+        for (const byte of bytes) binary += String.fromCharCode(byte);
+        updateValues((previous) => ({
+          ...previous,
+          input: btoa(binary),
+          mode: "decompress",
+        }));
+        setInputFile(file.name);
+        return;
+      }
+      const text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+      if (text.length > 100_000)
+        throw new Error("Keep imported text under 100,000 characters.");
+      updateValues((previous) => ({ ...previous, input: text }));
+      setInputFile(file.name);
+    } catch (error) {
+      setInputError(
+        error instanceof Error &&
+          (error.message.includes("100,000") || error.message.includes("gzip"))
+          ? error.message
+          : "This file is not UTF-8 text. Try a text, Markdown, configuration, or PEM file.",
+      );
+    }
+  };
+  const cancelRun = () => {
+    generation.current++;
+    controller.current?.abort();
+    setRunning(false);
+    setCancelled(true);
+    setError("");
+  };
+  const generated =
+    ["password", "id", "ulid"].includes(tool.id) &&
+    !(tool.id === "ulid" && values.mode === "decode");
+  const hasPreview = !!(
+    result &&
+    (result.html ||
+      result.diff ||
+      result.image ||
+      result.table ||
+      result.swatches ||
+      result.segments ||
+      result.smtp ||
+      generated)
+  );
+  const language =
+    result?.language ??
+    (result?.mime?.includes("json") ||
+    result?.filename?.endsWith(".json") ||
+    /^[\s]*[\[{]/.test(result?.text ?? "")
+      ? "json"
+      : result?.filename?.endsWith(".yaml")
+        ? "yaml"
+        : result?.filename?.endsWith(".xml")
+          ? "xml"
+          : "text");
+  const hasTextInput = tool.fields.some(
+    (field) => field.key === "input" && field.type === "textarea",
+  );
   return (
-    <main className="workspace container" id="main-content">
+    <main
+      className={`workspace container workspace-${tool.layout ?? "compact"} ${expanded ? "workspace-expanded" : ""}`}
+      id="main-content"
+    >
       <button className="back-link" onClick={onBack}>
         <ArrowLeft size={16} /> All tools
       </button>
@@ -286,8 +414,42 @@ function ToolWorkspace({
           <Star size={20} fill={favorite ? "currentColor" : "none"} />
         </button>
       </div>
-      <div className="workspace-grid">
-        <form className="input-panel" onSubmit={execute}>
+      <div className="workspace-toolbar" aria-label="Workspace controls">
+        <span>
+          {tool.server
+            ? "Server-assisted check"
+            : "Your input stays in this browser"}
+        </span>
+        <div>
+          <button
+            className="text-button"
+            onClick={() => setStacked(!stacked)}
+            aria-pressed={stacked}
+          >
+            {stacked ? <Columns2 size={15} /> : <Rows3 size={15} />}
+            {stacked ? "Side by side" : "Stack panels"}
+          </button>
+          <button
+            className="text-button"
+            onClick={() => setExpanded(!expanded)}
+            aria-pressed={expanded}
+          >
+            <Maximize2 size={15} />
+            {expanded ? "Standard width" : "More room"}
+          </button>
+        </div>
+      </div>
+      <div className={`workspace-grid ${stacked ? "stacked-panels" : ""}`}>
+        <form
+          className="input-panel"
+          onSubmit={execute}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+              event.preventDefault();
+              void execute();
+            }
+          }}
+        >
           <div className="panel-heading">
             <span>Your input</span>
             <button
@@ -301,61 +463,111 @@ function ToolWorkspace({
               <Sparkles size={14} /> Try example
             </button>
           </div>
+          {hasTextInput && (
+            <div className="input-file-bar">
+              <button
+                className="text-button"
+                type="button"
+                onClick={() => fileInput.current?.click()}
+              >
+                <FileUp size={14} />
+                Import text file
+              </button>
+              <input
+                ref={fileInput}
+                type="file"
+                hidden
+                aria-label="Import input file"
+                accept={
+                  tool.id === "gzip"
+                    ? ".gz,.txt,.md,.json,.csv"
+                    : ".txt,.md,.markdown,.json,.yaml,.yml,.xml,.csv,.html,.css,.js,.toml,.ini,.pem,.crt"
+                }
+                onChange={(event) => {
+                  void loadFile(event.target.files?.[0]);
+                  event.target.value = "";
+                }}
+              />
+              <span>{inputFile || "UTF-8 · up to 100,000 characters"}</span>
+            </div>
+          )}
+          {inputError && (
+            <p className="input-file-error" role="alert">
+              {inputError}
+            </p>
+          )}
           <div className="fields">
-            {tool.fields.map((field) => (
-              <label className="field" key={field.key}>
-                <span>{field.label}</span>
-                {field.type === "textarea" ? (
-                  <textarea
-                    value={values[field.key]}
-                    placeholder={field.placeholder}
-                    maxLength={100_000}
-                    onChange={(event) =>
-                      setValues((previous) => ({
-                        ...previous,
-                        [field.key]: event.target.value,
-                      }))
-                    }
-                    spellCheck={false}
-                    autoComplete="off"
-                  />
-                ) : field.type === "select" ? (
-                  <div className="select-wrap">
-                    <select
+            {tool.fields
+              .filter(
+                (field) =>
+                  !field.when || values[field.when[0]] === field.when[1],
+              )
+              .map((field) => (
+                <label className="field" key={field.key}>
+                  <span>{field.label}</span>
+                  {field.type === "textarea" ? (
+                    <textarea
+                      aria-label={field.label}
                       value={values[field.key]}
+                      placeholder={field.placeholder}
+                      maxLength={100_000}
                       onChange={(event) =>
-                        setValues((previous) => ({
+                        updateValues((previous) => ({
                           ...previous,
                           [field.key]: event.target.value,
                         }))
                       }
-                    >
-                      {field.options?.map(([value, label]) => (
-                        <option key={value} value={value}>
-                          {label}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown size={15} />
-                  </div>
-                ) : (
-                  <input
-                    type={field.type ?? "text"}
-                    value={values[field.key]}
-                    placeholder={field.placeholder}
-                    maxLength={100_000}
-                    onChange={(event) =>
-                      setValues((previous) => ({
-                        ...previous,
-                        [field.key]: event.target.value,
-                      }))
-                    }
-                    autoComplete="off"
-                    spellCheck={false}
-                  />
-                )}
-              </label>
-            ))}
+                      spellCheck={false}
+                      autoComplete="off"
+                    />
+                  ) : field.type === "select" ? (
+                    <div className="select-wrap">
+                      <select
+                        aria-label={field.label}
+                        value={values[field.key]}
+                        onChange={(event) =>
+                          updateValues((previous) => ({
+                            ...previous,
+                            [field.key]: event.target.value,
+                          }))
+                        }
+                      >
+                        {field.options?.map(([value, label]) => (
+                          <option key={value} value={value}>
+                            {label}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown size={15} />
+                    </div>
+                  ) : (
+                    <input
+                      aria-label={field.label}
+                      type={field.type ?? "text"}
+                      value={values[field.key]}
+                      placeholder={field.placeholder}
+                      maxLength={100_000}
+                      onChange={(event) =>
+                        updateValues((previous) => ({
+                          ...previous,
+                          [field.key]: event.target.value,
+                        }))
+                      }
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                  )}
+                  {field.type === "textarea" && (
+                    <span className="editor-meta">
+                      {(values[field.key] ?? "").length.toLocaleString()} /
+                      100,000 characters
+                    </span>
+                  )}
+                  {field.helper && (
+                    <small className="field-helper">{field.helper}</small>
+                  )}
+                </label>
+              ))}
           </div>
           <div className="input-actions">
             <button className="button primary" type="submit" disabled={running}>
@@ -370,6 +582,11 @@ function ToolWorkspace({
                 </>
               )}
             </button>
+            {running && (
+              <button className="text-button" type="button" onClick={cancelRun}>
+                Cancel
+              </button>
+            )}
             <button
               className="icon-button"
               type="button"
@@ -379,6 +596,7 @@ function ToolWorkspace({
               <RotateCcw size={17} />
             </button>
           </div>
+          <div className="run-shortcut">Ctrl / ⌘ + Enter to run</div>
           <div className="privacy-note">
             <LockKeyhole size={14} />
             <span>
@@ -407,14 +625,28 @@ function ToolWorkspace({
             <span>Your result</span>
             {result && (
               <div className="output-actions">
-                {(result.html || result.diff || result.image) && (
+                {hasPreview && (
                   <button
                     className="text-button"
                     onClick={() =>
                       setOutputView(outputView === "raw" ? "preview" : "raw")
                     }
                   >
-                    {outputView === "raw" ? "Preview" : "View source"}
+                    {outputView === "raw"
+                      ? "Result view"
+                      : result.html
+                        ? "HTML source"
+                        : "Raw output"}
+                  </button>
+                )}
+                {(!hasPreview || outputView === "raw") && (
+                  <button
+                    className={`icon-button small ${wrapCode ? "active" : ""}`}
+                    onClick={() => setWrapCode(!wrapCode)}
+                    aria-label="Wrap output lines"
+                    aria-pressed={wrapCode}
+                  >
+                    <WrapText size={16} />
                   </button>
                 )}
                 <button
@@ -500,14 +732,16 @@ function ToolWorkspace({
                 </p>
               )}
               {outputView === "preview" && result.image ? (
-                <div className="qr-result">
-                  <img src={result.image} alt="Generated QR code" />
+                <div
+                  className={`qr-result ${tool.id === "barcode" ? "barcode-result" : ""}`}
+                >
+                  <img
+                    src={result.image}
+                    alt={result.imageAlt ?? "Generated QR code"}
+                  />
                 </div>
               ) : outputView === "preview" && result.html ? (
-                <div
-                  className="markdown-preview"
-                  dangerouslySetInnerHTML={{ __html: result.html }}
-                />
+                <MarkdownPreview html={result.html} />
               ) : outputView === "preview" && result.diff ? (
                 <div className="diff-result">
                   {result.diff.map((part, index) =>
@@ -520,11 +754,57 @@ function ToolWorkspace({
                     ),
                   )}
                 </div>
-              ) : (
-                <pre className="output-code" tabIndex={0}>
-                  {result.text}
-                </pre>
+              ) : outputView === "preview" &&
+                (result.table || result.swatches || result.segments) ? (
+                <>
+                  {result.swatches && (
+                    <div className="color-swatches">
+                      {result.swatches.map((swatch) => (
+                        <div key={swatch.name}>
+                          <div
+                            className="color-chip"
+                            style={{ backgroundColor: swatch.color }}
+                          />
+                          <strong>{swatch.color}</strong>
+                          <span>{swatch.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {result.segments && (
+                    <div
+                      className="regex-preview"
+                      aria-label="Highlighted matches"
+                    >
+                      {result.segments.map((segment, index) =>
+                        segment.matched ? (
+                          <mark key={index}>{segment.value || "∅"}</mark>
+                        ) : (
+                          <span key={index}>{segment.value}</span>
+                        ),
+                      )}
+                    </div>
+                  )}
+                  {result.table && <DataTable data={result.table} />}
+                </>
+              ) : outputView === "preview" && generated ? (
+                <GeneratedValues text={result.text} onError={setCopyError} />
+              ) : outputView === "preview" && result.smtp ? null : (
+                <CodeBlock
+                  text={result.text}
+                  language={language}
+                  wrap={wrapCode}
+                />
               )}
+              <div className="result-footer">
+                <span>{result.mime ?? "Plain text"}</span>
+                <span>
+                  {new TextEncoder()
+                    .encode(result.text)
+                    .length.toLocaleString()}{" "}
+                  bytes · ready to copy or download
+                </span>
+              </div>
             </div>
           ) : (
             <div className="output-empty">
@@ -538,11 +818,15 @@ function ToolWorkspace({
               <h3>
                 {running
                   ? "A little work, a little magic."
-                  : "Good things start here."}
+                  : cancelled
+                    ? "Ready when you are."
+                    : "Good things start here."}
               </h3>
               <p>
                 {running
-                  ? "Your result will appear in a moment."
+                  ? tool.engine === "go"
+                    ? "Preparing your local workspace. The first run can take longer; later tools reuse it."
+                    : "Your result will appear in a moment."
                   : "Add your input or try an example.\nWe’ll take care of the rest."}
               </p>
             </div>
@@ -793,10 +1077,10 @@ function AppContent() {
                     >
                       {[
                         { name: "AfterShip", mark: "↗" },
-                        { name: "Papa Parse", mark: "{ }" },
-                        { name: "DOMPurify", mark: "◇" },
+                        { name: "Goldmark", mark: "M↓" },
+                        { name: "go-yaml", mark: "◇" },
                         { name: "Nano ID", mark: "#" },
-                        { name: "Marked", mark: "M↓" },
+                        { name: "regexp2", mark: "{ }" },
                         { name: "React", mark: "✳" },
                         { name: "Go", mark: "→" },
                       ].map((library) => (

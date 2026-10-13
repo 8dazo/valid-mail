@@ -22,7 +22,7 @@ export const test = base.extend({
       timeout: 45_000,
       ignoreHTTPSErrors: false,
     });
-    await page.route(`${baseURL}/**`, async (route) => {
+    await page.context().route(`${baseURL}/**`, async (route) => {
       const request = route.request();
       const response = await client.fetch(request.url(), {
         method: request.method(),
@@ -45,7 +45,8 @@ export const test = base.extend({
     try {
       await use(page);
     } finally {
-      if (!page.isClosed()) await page.unrouteAll({ behavior: "ignoreErrors" });
+      if (!page.isClosed())
+        await page.context().unrouteAll({ behavior: "ignoreErrors" });
       await client.dispose();
     }
   },

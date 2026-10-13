@@ -1,4 +1,5 @@
 import { expect, test } from "./fixtures";
+import { tools } from "../src/catalog";
 
 test("landing, local search, favorites, and keyboard navigation work", async ({
   page,
@@ -150,32 +151,21 @@ test("every local tool example produces a result without a runtime error", async
 }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  for (const id of [
-    "phone",
-    "url",
-    "ip",
-    "json",
-    "yaml",
-    "xml",
-    "csv",
-    "jwt",
-    "cron",
-    "qr",
-    "markdown",
-    "diff",
-    "id",
-    "password",
-    "hash",
-    "base64",
-    "timestamp",
-    "case",
-    "url-codec",
-  ]) {
-    await page.goto(`/tools/${id}`);
+  test.setTimeout(180_000);
+  await page.goto("/");
+  for (const { id } of tools.filter((tool) => !tool.server)) {
+    await page.locator(`.card-link[href="/tools/${id}"]`).click();
     await page.getByRole("button", { name: "Try example" }).click();
     await page.locator('.input-actions button[type="submit"]').click();
     await expect(page.locator(".result-body"), id).toBeVisible();
     await expect(page.getByRole("alert"), id).toHaveCount(0);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+      id,
+    ).toBe(true);
+    await page.getByRole("button", { name: "All tools", exact: true }).click();
   }
   expect(errors).toEqual([]);
 });
@@ -285,6 +275,8 @@ test("work email finder renders candidate data and public-page failures", async 
   await page.goto("/tools/finder");
   await page.getByRole("button", { name: "Try example" }).click();
   await page.locator('.input-actions button[type="submit"]').click();
+  await expect(page.locator(".data-view")).toContainText("jane@fixture.test");
+  await page.getByRole("button", { name: "Raw output", exact: true }).click();
   await expect(page.locator(".output-code")).toContainText("jane@fixture.test");
   await expect(page.locator(".facts")).toContainText("fixture.test");
   readable = false;
@@ -293,4 +285,188 @@ test("work email finder renders candidate data and public-page failures", async 
     "Public pages could not be read",
   );
   await expect(page.locator(".result-body")).toHaveCount(0);
+});
+
+test("README preview preserves code, tables, details and a standalone HTML download", async ({
+  page,
+}) => {
+  await page.goto("/tools/markdown");
+  await page
+    .getByLabel("Markdown", { exact: true })
+    .fill(
+      '# README\n\n```json\n{\n  "name": "WeMe",\n  "tools": 39\n}\n```\n\n| Name | Mode |\n| --- | --- |\n| WeMe | Local |\n\n- [x] Ready\n\n<details><summary>More information</summary><p>Details work.</p></details>\n\n![Logo](images/logo.png)',
+    );
+  await page
+    .getByRole("button", { name: "Preview Markdown", exact: true })
+    .click();
+  await expect(page.locator(".markdown-preview pre code")).toContainText(
+    '  "name": "WeMe"',
+  );
+  expect(
+    await page
+      .locator(".markdown-preview pre code")
+      .evaluate((element) => getComputedStyle(element).fontFamily),
+  ).toContain("monospace");
+  expect(
+    await page
+      .locator(".markdown-preview pre")
+      .evaluate((element) => getComputedStyle(element).whiteSpace),
+  ).toBe("pre");
+  await expect(page.locator(".markdown-preview table")).toContainText("WeMe");
+  await expect(
+    page.locator(".markdown-preview input[type=checkbox]"),
+  ).toBeChecked();
+  await page.locator(".markdown-preview summary").click();
+  await expect(page.locator(".markdown-preview details")).toHaveAttribute(
+    "open",
+    "",
+  );
+  await expect(page.locator(".image-placeholder")).toContainText("Logo");
+  await expect(page.locator(".markdown-preview img")).toHaveCount(0);
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download result" }).click();
+  const file = await download;
+  expect(file.suggestedFilename()).toBe("weme-preview.html");
+  const { readFile } = await import("node:fs/promises");
+  const content = await readFile((await file.path())!, "utf8");
+  expect(content).toContain("<!doctype html>");
+  expect(content).toContain("white-space:pre");
+  await page.getByRole("button", { name: "HTML source", exact: true }).click();
+  await expect(page.locator(".output-code")).toContainText("<!doctype html>");
+});
+
+test("imports text files, paginates CSV, switches layouts and invalidates stale output", async ({
+  page,
+}) => {
+  await page.goto("/tools/csv");
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "records.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(
+      "name,value\n" +
+        Array.from({ length: 60 }, (_, index) => `row-${index},${index}`).join(
+          "\n",
+        ),
+    ),
+  });
+  await page.locator('.input-actions button[type="submit"]').click();
+  await expect(page.locator(".data-view")).toContainText("60 rows");
+  await expect(page.locator(".data-view tbody tr")).toHaveCount(25);
+  await page.getByRole("button", { name: "Next rows" }).click();
+  await expect(page.locator(".data-view")).toContainText("Page 2 of 3");
+  await page.getByRole("button", { name: "Stack panels", exact: true }).click();
+  await expect(page.locator(".workspace-grid")).toHaveClass(/stacked-panels/);
+  await page.getByRole("button", { name: "More room", exact: true }).click();
+  await expect(page.locator(".workspace")).toHaveClass(/workspace-expanded/);
+  await page.getByLabel("Data", { exact: true }).fill("name,value\nnew,1");
+  await expect(page.locator(".result-body")).toHaveCount(0);
+  await page.locator('.input-actions button[type="submit"]').click();
+  await expect(page.locator(".data-view")).toContainText("new");
+});
+
+test("Go-backed barcode PNG and gzip downloads contain real binary data", async ({
+  page,
+}) => {
+  const { readFile } = await import("node:fs/promises");
+  const { gunzipSync } = await import("node:zlib");
+  await page.goto("/tools/barcode");
+  await page.getByRole("button", { name: "Try example" }).click();
+  await page.locator('.input-actions button[type="submit"]').click();
+  await expect(
+    page.getByRole("img", { name: "Generated barcode" }),
+  ).toBeVisible();
+  let waiting = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download result" }).click();
+  let file = await waiting;
+  expect(file.suggestedFilename()).toBe("weme-barcode.png");
+  const png = await readFile((await file.path())!);
+  expect(png.subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");
+  await page.goto("/tools/gzip");
+  await page.getByLabel("Text or Base64 gzip").fill("Hello, 世界 👋");
+  await page.locator('.input-actions button[type="submit"]').click();
+  await expect(page.locator(".result-body")).toBeVisible();
+  waiting = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download result" }).click();
+  file = await waiting;
+  expect(file.suggestedFilename()).toBe("weme.txt.gz");
+  expect(
+    gunzipSync(await readFile((await file.path())!)).toString("utf8"),
+  ).toBe("Hello, 世界 👋");
+});
+
+test("regex groups, color swatches and bcrypt mode controls fit their tool", async ({
+  page,
+}) => {
+  await page.goto("/tools/regex");
+  await page.getByRole("button", { name: "Try example" }).click();
+  await page.locator('.input-actions button[type="submit"]').click();
+  await expect(page.locator(".regex-preview mark")).toHaveCount(2);
+  await expect(page.locator(".data-view")).toContainText("order");
+  await page.goto("/tools/color");
+  await page.getByRole("button", { name: "Try example" }).click();
+  await page.locator('.input-actions button[type="submit"]').click();
+  await expect(page.locator(".color-chip")).toHaveCount(3);
+  await expect(page.locator(".data-view")).toContainText("rgb(7, 91, 83)");
+  await page.goto("/tools/bcrypt");
+  await expect(page.getByLabel("Bcrypt hash", { exact: true })).toHaveCount(0);
+  await page.getByLabel("Operation").selectOption("verify");
+  await expect(page.getByLabel("Bcrypt hash", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Cost (8–12)")).toHaveCount(0);
+});
+
+test("editing or cancelling an in-flight check keeps new input and clears old results", async ({
+  page,
+}) => {
+  await page.route("**/api/verify", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await route.fulfill({
+      json: {
+        success: true,
+        verification: { syntax: { valid: true }, has_mx_records: true },
+        validity: { status: "valid" },
+        reachability: { status: "unknown" },
+      },
+    });
+  });
+  await page.goto("/tools/email");
+  await page
+    .getByLabel("Email address", { exact: true })
+    .fill("first@example.com");
+  await page.getByRole("button", { name: "Verify email", exact: true }).click();
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(page.getByLabel("Email address", { exact: true })).toHaveValue(
+    "first@example.com",
+  );
+  await expect(page.locator(".result-body")).toHaveCount(0);
+  await page.getByRole("button", { name: "Verify email", exact: true }).click();
+  await page
+    .getByLabel("Email address", { exact: true })
+    .fill("second@example.com");
+  await expect(page.locator(".result-body")).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Verify email", exact: true }),
+  ).toBeEnabled();
+});
+
+test("switching tools reuses the local engine without uploading inputs", async ({
+  page,
+  context,
+}) => {
+  const wasm: string[] = [];
+  const api: string[] = [];
+  context.on("request", (request) => {
+    if (request.url().endsWith(".wasm")) wasm.push(request.url());
+    if (request.url().includes("/api/")) api.push(request.url());
+  });
+  await page.goto("/tools/json");
+  await page.getByRole("button", { name: "Try example" }).click();
+  await page.locator('.input-actions button[type="submit"]').click();
+  await expect(page.locator(".result-body")).toBeVisible();
+  await page.getByRole("button", { name: "All tools", exact: true }).click();
+  await page.locator('.card-link[href="/tools/color"]').click();
+  await page.getByRole("button", { name: "Try example" }).click();
+  await page.locator('.input-actions button[type="submit"]').click();
+  await expect(page.locator(".color-swatches")).toBeVisible();
+  expect(wasm).toHaveLength(1);
+  expect(api).toEqual([]);
 });

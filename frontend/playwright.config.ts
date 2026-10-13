@@ -6,6 +6,10 @@ export default defineConfig({
   fullyParallel: true,
   workers: 2,
   retries: process.env.CI ? 1 : 0,
+  // A cold local Go worker has a 60-second download/startup budget and a
+  // separate processing budget. Assertions must allow that documented path.
+  timeout: 100_000,
+  expect: { timeout: 75_000 },
   use: {
     baseURL: process.env.WEME_BASE_URL ?? "http://127.0.0.1:8080",
     trace: "retain-on-failure",

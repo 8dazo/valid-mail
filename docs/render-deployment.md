@@ -21,7 +21,7 @@ Redeploy the latest commit after applying the settings. A Git push does not upda
 
 ## Why the old build fails
 
-The earlier service ran only `go build -o bin/valid-mail .`. The current server embeds `frontend/dist`, which is intentionally excluded from Git. A clean checkout therefore fails with `frontend.go:14:12: pattern all:frontend/dist: no matching files found`. The new build script installs locked frontend dependencies, builds the frontend, verifies Go modules, and produces the existing binary path.
+The earlier service ran only `go build -o bin/valid-mail .`. The current server embeds `frontend/dist`, which is intentionally excluded from Git. A clean checkout therefore fails with `frontend.go:14:12: pattern all:frontend/dist: no matching files found`. The build script installs locked frontend dependencies, compiles the local Go/WebAssembly toolkit, builds the frontend, verifies Go modules, and produces the existing binary path.
 
 The prior Blueprint also changed the service name and runtime to `weme` / Docker. That does not provide an in-place migration for the existing native Go service. The corrected Blueprint retains `valid-mail` / Go.
 
@@ -38,4 +38,4 @@ Request `/healthz`, `/`, `/tools/email`, and `/api/verify` with an invalid email
 
 On 13 October 2026, the old build failed from a Git archive without generated files. The corrected script completed from that same clean checkout. Its binary passed startup with `PORT=10000`, health, embedded frontend/assets, tool deep links, image/logo requests, invalid-email API handling, and graceful SIGTERM shutdown. These are local build/runtime checks; Render dashboard logs and a hosted redeployment were unavailable for verification.
 
-Render Free does not provide direct outbound SMTP. The Blueprint disables direct and public-proxy SMTP; a stable private `SMTP_PROXY_URL` can be configured securely for mailbox probing. An unavailable SMTP route should leave mailbox existence unconfirmed, independently of service deployment health.
+The Blueprint enables bounded direct SMTP checks and keeps the public proxy pool optional. Render Free does not provide direct outbound SMTP, so enabling the flag cannot establish a working connection on that plan. Configure a stable private `SMTP_PROXY_URL` securely for mailbox probing, or use hosting with supported SMTP egress. An unavailable SMTP route should leave mailbox existence unconfirmed, independently of service deployment health.

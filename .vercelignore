@@ -12,7 +12,9 @@ bin
 Dockerfile
 .dockerignore
 docs
-scripts
 **/*_test.go
 frontend/src/**/*.test.ts
 frontend/e2e
+
+frontend/public/wasm
+frontend/src/generated

@@ -1,9 +1,13 @@
+import { certificateExample } from "./certificate-example.ts";
+
 export type Category =
   "Validation" | "Conversion" | "Generators" | "Developer" | "Text";
 export type Field = {
   key: string;
   label: string;
-  type?: "text" | "textarea" | "select" | "number";
+  type?: "text" | "textarea" | "select" | "number" | "password";
+  helper?: string;
+  when?: [string, string];
   placeholder?: string;
   defaultValue?: string;
   options?: [string, string][];
@@ -23,6 +27,8 @@ export type Tool = {
   note?: string;
   featured?: boolean;
   server?: boolean;
+  engine?: "go";
+  layout?: "document" | "code" | "compare" | "compact" | "generator";
 };
 const text = (label = "Input", key = "input", placeholder = ""): Field => ({
   key,
@@ -47,6 +53,7 @@ const github = (repo: string) => `https://github.com/${repo}`;
 export const tools: Tool[] = [
   {
     id: "email",
+    layout: "compact",
     name: "Email validator",
     description: "Check email syntax, mail routing, and disposable domains.",
     category: "Validation",
@@ -59,12 +66,18 @@ export const tools: Tool[] = [
     source: github("AfterShip/email-verifier"),
     fields: [
       { key: "input", label: "Email address", placeholder: "you@company.com" },
+      select("depth", "Verification depth", [
+        ["mailbox", "Address + mailbox (SMTP)"],
+        ["domain", "Quick address + DNS check"],
+      ]),
     ],
     example: { input: "hello@gmail.com" },
-    note: "Your address is sent to this server for DNS checks. A valid domain does not prove that a mailbox exists.",
+    note: "Your address is sent to this server and, for SMTP checks, to the mail server. An unavailable route leaves mailbox existence unconfirmed.",
   },
   {
     id: "json",
+    engine: "go",
+    layout: "code",
     name: "JSON formatter",
     description: "Format, minify, and repair your imperfect JSON.",
     category: "Developer",
@@ -72,8 +85,8 @@ export const tools: Tool[] = [
     color: "orange",
     action: "Format JSON",
     featured: true,
-    library: "jsonrepair",
-    source: github("josdejong/jsonrepair"),
+    library: "tidwall/pretty + json-repair",
+    source: github("tidwall/pretty"),
     fields: [
       text("JSON input", "input", '{ "hello": "world" }'),
       select("mode", "Operation", [
@@ -82,10 +95,12 @@ export const tools: Tool[] = [
         ["repair", "Repair & format"],
       ]),
     ],
-    example: { input: "{name: 'WeMe', tools: 20,}", mode: "repair" },
+    example: { input: "{name: 'WeMe', tools: 39,}", mode: "repair" },
   },
   {
     id: "qr",
+    engine: "go",
+    layout: "generator",
     name: "QR code generator",
     description: "Turn any link or text into a crisp, downloadable QR code.",
     category: "Generators",
@@ -93,8 +108,8 @@ export const tools: Tool[] = [
     color: "purple",
     action: "Generate QR code",
     featured: true,
-    library: "node-qrcode",
-    source: github("soldair/node-qrcode"),
+    library: "skip2/go-qrcode",
+    source: github("skip2/go-qrcode"),
     fields: [
       text("Link or text", "input", "https://example.com"),
       select("correction", "Error correction", [
@@ -108,6 +123,9 @@ export const tools: Tool[] = [
   },
   {
     id: "password",
+    engine: "go",
+    source: github("sethvargo/go-password"),
+    layout: "generator",
     name: "Password generator",
     description: "Create strong passwords with secure browser randomness.",
     category: "Generators",
@@ -115,7 +133,7 @@ export const tools: Tool[] = [
     color: "pink",
     action: "Generate passwords",
     featured: true,
-    library: "Web Crypto API",
+    library: "sethvargo/go-password",
     fields: [
       {
         key: "length",
@@ -135,14 +153,16 @@ export const tools: Tool[] = [
   },
   {
     id: "phone",
+    engine: "go",
+    layout: "compact",
     name: "Phone validator",
     description: "Validate and format international phone numbers.",
     category: "Validation",
     icon: "Phone",
     color: "blue",
     action: "Check number",
-    library: "libphonenumber-js",
-    source: github("catamphetamine/libphonenumber-js"),
+    library: "nyaruka/phonenumbers",
+    source: github("nyaruka/phonenumbers"),
     fields: [
       { key: "input", label: "Phone number", placeholder: "+44 20 7946 0018" },
       select("country", "Default country", [
@@ -160,14 +180,16 @@ export const tools: Tool[] = [
   },
   {
     id: "url",
+    engine: "go",
+    layout: "compact",
     name: "URL inspector",
     description: "Validate a link and explore its individual components.",
     category: "Validation",
     icon: "Link",
     color: "green",
     action: "Inspect URL",
-    library: "validator.js",
-    source: github("validatorjs/validator.js"),
+    library: "Go net/url",
+    source: github("golang/go/tree/master/src/net/url"),
     fields: [
       {
         key: "input",
@@ -182,14 +204,16 @@ export const tools: Tool[] = [
   },
   {
     id: "ip",
+    engine: "go",
+    layout: "compact",
     name: "IP address inspector",
     description: "Understand IPv4, IPv6, CIDR ranges, and address types.",
     category: "Validation",
     icon: "Network",
     color: "purple",
     action: "Inspect address",
-    library: "ipaddr.js",
-    source: github("whitequark/ipaddr.js"),
+    library: "Go net/netip",
+    source: github("golang/go/tree/master/src/net/netip"),
     fields: [
       {
         key: "input",
@@ -201,14 +225,16 @@ export const tools: Tool[] = [
   },
   {
     id: "yaml",
+    engine: "go",
+    layout: "code",
     name: "JSON ↔ YAML",
     description: "Switch effortlessly between JSON and YAML documents.",
     category: "Conversion",
     icon: "FileJson",
     color: "orange",
     action: "Convert document",
-    library: "yaml",
-    source: github("eemeli/yaml"),
+    library: "go.yaml.in/yaml/v3",
+    source: github("yaml/go-yaml"),
     fields: [
       select("mode", "Direction", [
         ["yaml-json", "YAML → JSON"],
@@ -217,20 +243,22 @@ export const tools: Tool[] = [
       text("Document"),
     ],
     example: {
-      input: "name: WeMe\ntools: 20\nprivate: true",
+      input: "name: WeMe\ntools: 39\nprivate: true",
       mode: "yaml-json",
     },
   },
   {
     id: "xml",
+    engine: "go",
+    layout: "code",
     name: "XML ↔ JSON",
     description: "Parse XML or transform JSON into readable XML.",
     category: "Conversion",
     icon: "CodeXml",
     color: "blue",
     action: "Convert document",
-    library: "fast-xml-parser",
-    source: github("NaturalIntelligence/fast-xml-parser"),
+    library: "clbanning/mxj",
+    source: github("clbanning/mxj"),
     fields: [
       select("mode", "Direction", [
         ["xml-json", "XML → JSON"],
@@ -239,21 +267,23 @@ export const tools: Tool[] = [
       text("Document"),
     ],
     example: {
-      input: "<toolkit><name>WeMe</name><tools>20</tools></toolkit>",
+      input: "<toolkit><name>WeMe</name><tools>39</tools></toolkit>",
       mode: "xml-json",
     },
     note: "DTD and entity declarations are rejected. No external resources are loaded.",
   },
   {
     id: "csv",
+    engine: "go",
+    layout: "code",
     name: "CSV ↔ JSON",
     description: "Convert spreadsheets and structured data in seconds.",
     category: "Conversion",
     icon: "Table",
     color: "green",
     action: "Convert data",
-    library: "Papa Parse",
-    source: github("mholt/PapaParse"),
+    library: "Go encoding/csv",
+    source: github("golang/go/tree/master/src/encoding/csv"),
     fields: [
       select("mode", "Direction", [
         ["csv-json", "CSV → JSON"],
@@ -269,14 +299,15 @@ export const tools: Tool[] = [
   },
   {
     id: "jwt",
+    engine: "go",
     name: "JWT decoder",
     description: "Read token headers and payloads without sending them away.",
     category: "Developer",
     icon: "Fingerprint",
     color: "pink",
     action: "Decode token",
-    library: "jwt-decode",
-    source: github("auth0/jwt-decode"),
+    library: "golang-jwt/jwt",
+    source: github("golang-jwt/jwt"),
     fields: [text("JSON Web Token", "input", "eyJhbGciOiJIUzI1NiJ9…")],
     example: {
       input:
@@ -286,14 +317,15 @@ export const tools: Tool[] = [
   },
   {
     id: "cron",
+    engine: "go",
     name: "Cron explainer",
     description: "Translate schedule expressions into plain English.",
     category: "Developer",
     icon: "CalendarClock",
     color: "purple",
     action: "Explain schedule",
-    library: "cRonstrue",
-    source: github("bradymholt/cRonstrue"),
+    library: "lnquy/cron",
+    source: github("lnquy/cron"),
     fields: [
       { key: "input", label: "Cron expression", placeholder: "0 9 * * 1-5" },
     ],
@@ -302,30 +334,48 @@ export const tools: Tool[] = [
   },
   {
     id: "markdown",
-    name: "Markdown preview",
+    name: "Markdown & README preview",
+    engine: "go",
+    layout: "document",
     description: "Write Markdown and preview clean, sanitized HTML.",
     category: "Text",
     icon: "FileText",
     color: "blue",
     action: "Preview Markdown",
-    library: "Marked + DOMPurify",
-    source: github("markedjs/marked"),
-    fields: [text("Markdown", "input", "# Hello, world")],
+    library: "Goldmark + bluemonday",
+    source: github("yuin/goldmark"),
+    fields: [
+      text("Markdown", "input", "# Hello, world"),
+      select("images", "Images", [
+        ["block", "Hide external images"],
+        ["allow", "Load HTTPS images"],
+      ]),
+      {
+        key: "base",
+        label: "Asset base URL (optional)",
+        placeholder: "https://raw.githubusercontent.com/owner/repo/main/",
+        helper:
+          "Resolves relative images. Enable images only if you trust their hosts.",
+      },
+    ],
+    note: "Rendered locally. External images remain placeholders unless you enable them.",
     example: {
       input:
-        "# Small tools. Big possibilities.\n\nMake everyday work **a little easier**.\n\n- Validate\n- Convert\n- Create",
+        '# Small tools. Big possibilities.\n\nMake everyday work **a little easier**.\n\n```json\n{"name": "WeMe", "tools": 39}\n```\n\n| Tool | Runs |\n| --- | --- |\n| Markdown | Locally |\n\n- [x] Write\n- [ ] Create\n\n<details><summary>A little more</summary>Clean code blocks, readable tables, and room to breathe.</details>',
     },
   },
   {
     id: "diff",
+    engine: "go",
+    layout: "compare",
     name: "Text compare",
     description: "Spot what changed between two pieces of text.",
     category: "Text",
     icon: "GitCompareArrows",
     color: "orange",
     action: "Compare text",
-    library: "jsdiff",
-    source: github("kpdecker/jsdiff"),
+    library: "sergi/go-diff",
+    source: github("sergi/go-diff"),
     fields: [text("Original text", "input"), text("Updated text", "second")],
     example: {
       input: "Small tools. Good ideas.\nMade for everyday work.",
@@ -334,14 +384,16 @@ export const tools: Tool[] = [
   },
   {
     id: "id",
+    engine: "go",
+    layout: "generator",
     name: "UUID & Nano ID",
     description: "Generate unique identifiers for your next project.",
     category: "Generators",
     icon: "ScanLine",
     color: "blue",
     action: "Generate IDs",
-    library: "Nano ID + Web Crypto",
-    source: github("ai/nanoid"),
+    library: "google/uuid + go-nanoid",
+    source: github("google/uuid"),
     fields: [
       select("mode", "ID format", [
         ["uuid", "UUID v4"],
@@ -358,14 +410,15 @@ export const tools: Tool[] = [
   },
   {
     id: "hash",
+    engine: "go",
     name: "Hash generator",
     description: "Calculate SHA-256 and SHA-512 fingerprints for text.",
     category: "Developer",
     icon: "Hash",
     color: "green",
     action: "Generate hash",
-    library: "@noble/hashes",
-    source: github("paulmillr/noble-hashes"),
+    library: "Go crypto/sha256 + sha512",
+    source: github("golang/go/tree/master/src/crypto"),
     fields: [
       text("Text to hash"),
       select("mode", "Algorithm", [
@@ -378,13 +431,15 @@ export const tools: Tool[] = [
   },
   {
     id: "base64",
+    engine: "go",
+    source: github("golang/go/tree/master/src/encoding/base64"),
     name: "Base64 encoder",
     description: "Encode or decode text, including Unicode characters.",
     category: "Conversion",
     icon: "Binary",
     color: "purple",
     action: "Convert text",
-    library: "Browser encoding APIs",
+    library: "Go encoding/base64",
     fields: [
       select("mode", "Direction", [
         ["encode", "Text → Base64"],
@@ -396,13 +451,15 @@ export const tools: Tool[] = [
   },
   {
     id: "timestamp",
+    engine: "go",
+    source: github("golang/go/tree/master/src/time"),
     name: "Timestamp converter",
     description: "Make sense of Unix timestamps and ISO dates.",
     category: "Conversion",
     icon: "Clock",
     color: "pink",
     action: "Convert time",
-    library: "JavaScript Date / Intl",
+    library: "Go time + IANA tzdata",
     fields: [
       {
         key: "input",
@@ -413,32 +470,43 @@ export const tools: Tool[] = [
         ["seconds", "Seconds"],
         ["milliseconds", "Milliseconds"],
       ]),
+      select("timezone", "Display timezone", [
+        ["local", "Your device timezone"],
+        ["UTC", "UTC"],
+        ["Asia/Kolkata", "Asia/Kolkata"],
+        ["America/New_York", "America/New_York"],
+        ["Europe/London", "Europe/London"],
+        ["Australia/Sydney", "Australia/Sydney"],
+      ]),
     ],
     example: { input: "2026-01-01T00:00:00Z", unit: "seconds" },
     note: "Use an ISO date with a timezone (Z or ±hh:mm) for an unambiguous result.",
   },
   {
     id: "case",
+    engine: "go",
     name: "Text case converter",
     description: "Transform text into camelCase, snake_case, and more.",
     category: "Text",
     icon: "CaseSensitive",
     color: "orange",
     action: "Convert case",
-    library: "change-case",
-    source: github("blakeembrey/change-case"),
+    library: "ettle/strcase",
+    source: github("ettle/strcase"),
     fields: [text("Text")],
     example: { input: "small tools big possibilities" },
   },
   {
     id: "url-codec",
+    engine: "go",
+    source: github("golang/go/tree/master/src/net/url"),
     name: "URL encoder",
     description: "Encode query values or decode percent-encoded text.",
     category: "Conversion",
     icon: "Link",
     color: "blue",
     action: "Convert URL text",
-    library: "Browser URI APIs",
+    library: "Go net/url",
     fields: [
       select("mode", "Direction", [
         ["encode", "Text → URL component"],
@@ -450,6 +518,7 @@ export const tools: Tool[] = [
   },
   {
     id: "finder",
+    layout: "compact",
     name: "Work email finder",
     description: "Discover email candidates from public company pages.",
     category: "Validation",
@@ -474,6 +543,438 @@ export const tools: Tool[] = [
       domain: "example.com",
     },
     note: "Name, company, and domain are sent to this server. Candidate addresses are suggestions, not proof of mailbox ownership.",
+  },
+  {
+    id: "regex",
+    name: "Regex tester",
+    description:
+      "Find matches and capture groups, with a bounded matching budget.",
+    category: "Developer",
+    icon: "SearchCheck",
+    color: "green",
+    engine: "go",
+    layout: "code",
+    action: "Test expression",
+    library: "regexp2",
+    source: github("dlclark/regexp2"),
+    fields: [
+      {
+        key: "pattern",
+        label: "Regular expression",
+        placeholder: "(?<order>\\d{4})",
+      },
+      {
+        key: "flags",
+        label: "Flags",
+        placeholder: "i, m, s",
+        helper: "i: ignore case · m: multiline · s: include newlines",
+      },
+      text("Text to test"),
+    ],
+    example: {
+      input: "Orders: #1001 shipped, #1002 ready.",
+      pattern: "(?<order>\\d{4})",
+      flags: "",
+    },
+    note: "Runs locally. Uses .NET-compatible regexp2 syntax, with 100 ms matching and a worker timeout.",
+  },
+  {
+    id: "toml",
+    name: "TOML ↔ JSON",
+    description:
+      "Convert configuration files while preserving nested tables and integer precision.",
+    category: "Conversion",
+    icon: "FileJson",
+    color: "sand",
+    engine: "go",
+    layout: "code",
+    action: "Convert configuration",
+    library: "go-toml/v2",
+    source: github("pelletier/go-toml"),
+    fields: [
+      select("mode", "Conversion", [
+        ["toml-json", "TOML → JSON"],
+        ["json-toml", "JSON → TOML"],
+      ]),
+      text("Configuration"),
+    ],
+    example: {
+      input: 'title = "WeMe"\n[server]\nport = 8080\nenabled = true',
+      mode: "toml-json",
+    },
+  },
+  {
+    id: "ini",
+    name: "INI ↔ JSON",
+    description:
+      "Read sections and keys, or write a JSON configuration as INI.",
+    category: "Conversion",
+    icon: "FileJson",
+    color: "sand",
+    engine: "go",
+    layout: "code",
+    action: "Convert configuration",
+    library: "go-ini/ini",
+    source: github("go-ini/ini"),
+    fields: [
+      select("mode", "Conversion", [
+        ["ini-json", "INI → JSON"],
+        ["json-ini", "JSON → INI"],
+      ]),
+      text("Configuration"),
+    ],
+    example: {
+      input: "theme = teal\n[server]\nport = 8080\nhost = localhost",
+      mode: "ini-json",
+    },
+    note: "Runs locally. INI values remain strings; comments are not preserved in JSON.",
+  },
+  ...(
+    [
+      [
+        "html-minify",
+        "HTML minifier",
+        "HTML",
+        "<!doctype html>\n<html>\n  <body>\n    <h1> Hello, WeMe </h1>\n  </body>\n</html>",
+      ],
+      [
+        "css-minify",
+        "CSS minifier",
+        "CSS",
+        "/* A calm palette */\n.card {\n  padding: 16px 16px 16px 16px;\n  color: #ffffff;\n}",
+      ],
+      [
+        "js-minify",
+        "JavaScript minifier",
+        "JavaScript",
+        'function greet(name) {\n  const message = "Hello, " + name;\n  return message;\n}',
+      ],
+      [
+        "svg-minify",
+        "SVG minifier",
+        "SVG",
+        '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">\n  <rect x="0" y="0" width="100" height="100" fill="#075b53" />\n</svg>',
+      ],
+    ] as const
+  ).map(([id, name, label, input]): Tool => ({
+    id,
+    name,
+    description: `Reduce ${label} size and see the bytes saved.`,
+    category: "Developer",
+    icon: "CodeXml",
+    color: "green",
+    engine: "go",
+    layout: "code",
+    action: "Minify code",
+    library: "tdewolff/minify",
+    source: github("tdewolff/minify"),
+    fields: [text(label)],
+    example: { input },
+    note: "Runs locally. Code is shown as text and never executed.",
+  })),
+  {
+    id: "html-markdown",
+    name: "HTML → Markdown",
+    description:
+      "Turn pasted HTML into readable Markdown for docs and READMEs.",
+    category: "Conversion",
+    icon: "FileText",
+    color: "sand",
+    engine: "go",
+    layout: "code",
+    action: "Convert to Markdown",
+    library: "html-to-markdown/v2",
+    source: github("JohannesKaufmann/html-to-markdown"),
+    fields: [text("HTML")],
+    example: {
+      input:
+        "<h1>WeMe</h1><p>Little tools for <strong>everyday work</strong>.</p><ul><li>Validate</li><li>Create</li></ul>",
+    },
+    note: "Runs locally. HTML is parsed without executing scripts or fetching pages.",
+  },
+  {
+    id: "barcode",
+    name: "Barcode generator",
+    description: "Create scannable Code 128, Code 39 and EAN labels as PNG.",
+    category: "Generators",
+    icon: "ScanLine",
+    color: "green",
+    engine: "go",
+    layout: "generator",
+    action: "Generate barcode",
+    library: "boombuler/barcode",
+    source: github("boombuler/barcode"),
+    fields: [
+      { key: "input", label: "Barcode content", placeholder: "WEME-1001" },
+      select("mode", "Format", [
+        ["code128", "Code 128"],
+        ["code39", "Code 39"],
+        ["ean", "EAN-8 / EAN-13"],
+      ]),
+      {
+        key: "width",
+        label: "Width (200–1600 px)",
+        type: "number",
+        defaultValue: "600",
+      },
+      {
+        key: "height",
+        label: "Height (60–400 px)",
+        type: "number",
+        defaultValue: "160",
+      },
+    ],
+    example: {
+      input: "WEME-1001",
+      mode: "code128",
+      width: "600",
+      height: "160",
+    },
+  },
+  {
+    id: "color",
+    name: "Color converter",
+    description:
+      "Translate HEX into RGB, HSL and HSV, with lighter and darker swatches.",
+    category: "Conversion",
+    icon: "ScanLine",
+    color: "sand",
+    engine: "go",
+    layout: "compact",
+    action: "Convert color",
+    library: "go-colorful",
+    source: github("lucasb-eyer/go-colorful"),
+    fields: [{ key: "input", label: "HEX color", placeholder: "#075b53" }],
+    example: { input: "#075b53" },
+  },
+  {
+    id: "ulid",
+    name: "ULID generator & inspector",
+    description:
+      "Create cryptographically random sortable IDs, or read their timestamp.",
+    category: "Generators",
+    icon: "Fingerprint",
+    color: "green",
+    engine: "go",
+    layout: "generator",
+    action: "Run ULID tool",
+    library: "oklog/ulid",
+    source: github("oklog/ulid"),
+    fields: [
+      select("mode", "Operation", [
+        ["generate", "Generate ULIDs"],
+        ["decode", "Inspect ULID"],
+      ]),
+      {
+        key: "count",
+        label: "How many (1–100)",
+        type: "number",
+        defaultValue: "5",
+        when: ["mode", "generate"],
+      },
+      {
+        key: "input",
+        label: "ULID",
+        placeholder: "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+        when: ["mode", "decode"],
+      },
+    ],
+    example: {
+      mode: "generate",
+      count: "5",
+      input: "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    },
+  },
+  {
+    id: "bcrypt",
+    name: "Bcrypt hash & verify",
+    description:
+      "Hash a password with a random salt, or compare it with an existing hash.",
+    category: "Developer",
+    icon: "KeyRound",
+    color: "green",
+    engine: "go",
+    layout: "compact",
+    action: "Run bcrypt",
+    library: "golang/x/crypto/bcrypt",
+    source: github("golang/crypto"),
+    fields: [
+      select("mode", "Operation", [
+        ["hash", "Generate hash"],
+        ["verify", "Verify password"],
+      ]),
+      {
+        key: "input",
+        label: "Password",
+        type: "password",
+        helper: "Never uploaded. Maximum 72 UTF-8 bytes; spaces are preserved.",
+      },
+      {
+        key: "cost",
+        label: "Cost (8–12)",
+        type: "number",
+        defaultValue: "10",
+        when: ["mode", "hash"],
+      },
+      {
+        key: "hash",
+        label: "Bcrypt hash",
+        type: "textarea",
+        placeholder: "$2a$10$…",
+        when: ["mode", "verify"],
+      },
+    ],
+    example: { input: "correct-horse-battery-staple", mode: "hash", cost: "8" },
+    note: "Password and hash stay in your browser. Cost is bounded to keep the tool responsive.",
+  },
+  {
+    id: "text-stats",
+    name: "Text analyzer",
+    description:
+      "Count Unicode characters, words, lines and UTF-8 bytes, with a reading-time estimate.",
+    category: "Text",
+    icon: "FileText",
+    color: "sand",
+    engine: "go",
+    layout: "code",
+    action: "Analyze text",
+    library: "rivo/uniseg",
+    source: github("rivo/uniseg"),
+    fields: [text("Text")],
+    example: { input: "A little less friction.\nA little more creating. 👩🏽‍💻" },
+  },
+  {
+    id: "certificate",
+    name: "Certificate inspector",
+    description:
+      "Inspect public X.509 PEM certificates and their SHA-256 fingerprint locally.",
+    category: "Validation",
+    icon: "Fingerprint",
+    color: "green",
+    engine: "go",
+    layout: "code",
+    action: "Inspect certificate",
+    library: "Go crypto/x509",
+    source: "https://github.com/golang/go/tree/master/src/crypto/x509",
+    fields: [text("PEM certificate", "input", "-----BEGIN CERTIFICATE-----")],
+    example: { input: certificateExample },
+    note: "Runs locally. Public certificates only; never paste private keys. Inspection does not establish trust.",
+  },
+  {
+    id: "cron-next",
+    name: "Cron schedule planner",
+    description: "Preview the next five runs in UTC and an IANA timezone.",
+    category: "Developer",
+    icon: "CalendarClock",
+    color: "green",
+    engine: "go",
+    layout: "compact",
+    action: "Preview next runs",
+    library: "robfig/cron",
+    source: github("robfig/cron"),
+    fields: [
+      {
+        key: "input",
+        label: "Five-field cron expression",
+        placeholder: "0 9 * * 1-5",
+      },
+      {
+        key: "timezone",
+        label: "Timezone",
+        defaultValue: "UTC",
+        placeholder: "Asia/Kolkata",
+      },
+      {
+        key: "start",
+        label: "Start time (optional)",
+        placeholder: "2026-01-01T00:00:00Z",
+        helper:
+          "Leave empty to start from now. Use an ISO date with a timezone.",
+      },
+    ],
+    example: {
+      input: "0 9 * * 1-5",
+      timezone: "Asia/Kolkata",
+      start: "2026-01-01T00:00:00Z",
+    },
+  },
+  {
+    id: "gzip",
+    name: "Gzip text compressor",
+    description:
+      "Compress text to a downloadable gzip file, or unpack Base64 gzip safely.",
+    category: "Conversion",
+    icon: "Binary",
+    color: "blue",
+    engine: "go",
+    layout: "code",
+    action: "Run gzip tool",
+    library: "Go compress/gzip",
+    source: github("golang/go/tree/master/src/compress/gzip"),
+    fields: [
+      select("mode", "Operation", [
+        ["compress", "Compress text"],
+        ["decompress", "Decompress Base64 gzip"],
+      ]),
+      text("Text or Base64 gzip"),
+    ],
+    example: {
+      input: "Small tools. Big possibilities.\n".repeat(12),
+      mode: "compress",
+    },
+    note: "Runs locally. Decompression has a 1 MB output limit.",
+  },
+  {
+    id: "hmac",
+    name: "HMAC generator",
+    description:
+      "Authenticate a message with HMAC-SHA256 or HMAC-SHA512 using a local secret key.",
+    category: "Developer",
+    icon: "KeyRound",
+    color: "green",
+    engine: "go",
+    layout: "code",
+    action: "Generate HMAC",
+    library: "Go crypto/hmac",
+    source: github("golang/go/tree/master/src/crypto/hmac"),
+    fields: [
+      select("mode", "Algorithm", [
+        ["sha256", "HMAC-SHA256"],
+        ["sha512", "HMAC-SHA512"],
+      ]),
+      text("Message"),
+      {
+        key: "key",
+        label: "Secret key",
+        type: "password",
+        helper: "UTF-8 text key. The message and key are never uploaded.",
+      },
+    ],
+    example: { input: "Hello, WeMe", key: "example-key", mode: "sha256" },
+  },
+  {
+    id: "chmod",
+    name: "Unix permissions calculator",
+    description:
+      "Read octal permissions as owner, group and other access rules.",
+    category: "Developer",
+    icon: "KeyRound",
+    color: "green",
+    engine: "go",
+    layout: "compact",
+    action: "Explain permissions",
+    library: "Go strconv + Unix permission masks",
+    source: github("golang/go/tree/master/src/os"),
+    fields: [
+      {
+        key: "input",
+        label: "Octal permissions",
+        placeholder: "755",
+        helper: "Three or four digits, from 000 to 7777.",
+      },
+    ],
+    example: { input: "755" },
+    note: "Runs locally. This tool never changes filesystem permissions.",
   },
 ];
 export const categories: Category[] = [

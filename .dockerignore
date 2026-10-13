@@ -10,3 +10,6 @@ bin
 .env.*
 
 .vercel
+
+frontend/public/wasm
+frontend/src/generated

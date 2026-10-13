@@ -217,3 +217,9 @@ The service pins `github.com/AfterShip/email-verifier` v1.5.0 or newer compatibl
 The current interface and production build are documented in the root [README](../README.md). Build the TypeScript frontend before compiling Go. SMTP now defaults to disabled, and DNS transport failures are reported as inconclusive rather than invalid. The JSON APIs and separate SMTP assessment remain available.
 
 Public proxy availability and recipient acceptance are outside the application’s control. A stable SOCKS5 route that permits mail-server port 25 can be configured as the `SMTP_PROXY_URL` secret. Credentials are never returned in results. SMTP sends no message body; it only negotiates the connection and recipient commands. Unknown results have no measured confidence in the UI.
+
+## Verification depth and current UI
+
+`POST /api/verify` accepts an optional boolean `smtp`. It defaults to true; `{ "email": "user@example.com", "smtp": false }` performs the quick address/DNS path without mailbox probes. GET requests can use `smtp=false`. The UI exposes the same choice and shows the check time, duration, configured/attempted SMTP state, route, reply, catch-all evidence and verdict confidence. Unknown mailbox results show “Not measured.”
+
+SMTP normalizes internationalized domains before lookup, pins public destinations, prefers IPv4, and bounds alternate-IP attempts. Transport, policy and TLS failures do not establish a missing recipient. Configuration enables attempts; actual mailbox evidence still requires a working SMTP-capable route.

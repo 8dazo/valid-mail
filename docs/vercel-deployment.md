@@ -2,7 +2,7 @@
 
 Deploy the repository root, not just `frontend/`. The current Vercel Go framework supports a standalone Go HTTP server. The frontend is built first and embedded in the server binary, so the same deployment serves the UI, deep links, assets, email validation, and work-email discovery.
 
-`vercel.json` selects the Go framework, installs frozen frontend dependencies, builds the frontend and server, uses the project’s default function duration, enables bounded direct SMTP checks, and disables public proxy/background metadata updates. The root package.json selects Node 24. The Go toolchain directive selects Go 1.27.2. No Render backend URL or cross-origin API proxy is required.
+`vercel.json` selects the Go framework, installs frozen frontend dependencies, compiles the local Go/WebAssembly toolkit, builds the frontend and server, uses the project’s default function duration, enables bounded direct SMTP checks, and disables public proxy/background metadata updates. The root package.json selects Node 24. The Go toolchain directive selects Go 1.27.2. No Render backend URL or cross-origin API proxy is required.
 
 ## Deploy
 

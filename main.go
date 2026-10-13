@@ -45,6 +45,7 @@ type application struct {
 
 type verifyRequest struct {
 	Email string `json:"email"`
+	SMTP  *bool  `json:"smtp,omitempty"`
 }
 
 type verifyResponse struct {
@@ -183,8 +184,17 @@ func (app *application) handleVerify(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var email string
+	smtpRequested := true
 	if r.Method == http.MethodGet {
 		email = r.URL.Query().Get("email")
+		if raw := r.URL.Query().Get("smtp"); raw != "" {
+			requested, err := strconv.ParseBool(raw)
+			if err != nil {
+				writeJSON(w, http.StatusBadRequest, map[string]any{"success": false, "error": "smtp must be true or false"})
+				return
+			}
+			smtpRequested = requested
+		}
 	} else {
 		r.Body = http.MaxBytesReader(w, r.Body, 8<<10)
 		defer r.Body.Close()
@@ -201,6 +211,9 @@ func (app *application) handleVerify(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		email = req.Email
+		if req.SMTP != nil {
+			smtpRequested = *req.SMTP
+		}
 	}
 
 	email = strings.TrimSpace(email)
@@ -259,6 +272,8 @@ func (app *application) handleVerify(w http.ResponseWriter, r *http.Request) {
 		response.Reachability = &reachabilityAssessment{Status: "invalid", Reason: "no_mx", Confidence: 100, Evidence: "The domain does not publish MX records for receiving mail."}
 	} else if result.Disposable {
 		response.Reachability = &reachabilityAssessment{Status: "risky", Reason: "disposable_domain", Confidence: 95, Evidence: "The address belongs to a known disposable-email domain."}
+	} else if !smtpRequested {
+		response.Reachability = &reachabilityAssessment{Status: "unknown", Reason: "smtp_not_requested", Confidence: 0, Evidence: "Address and domain checks are complete. Mailbox-level SMTP verification was not requested."}
 	} else if shouldAttemptSMTP(result) && (app.directSMTP || app.proxySMTP || app.smtpProxyURL != "") {
 		select {
 		case app.smtpSlots <- struct{}{}:
@@ -353,7 +368,7 @@ func securityHeaders(next http.Handler) http.Handler {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("Referrer-Policy", "no-referrer")
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; connect-src 'self'; img-src 'self' data: https:; font-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'")
 		w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
 		next.ServeHTTP(w, r)
 	})

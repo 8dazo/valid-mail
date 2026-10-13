@@ -195,3 +195,23 @@ func TestSMTPRejectsPrivateDestinations(t *testing.T) {
 		}
 	}
 }
+
+func TestPublicSMTPDestinationsPreferIPv4(t *testing.T) {
+	targets := publicSMTPDestinations([]net.IPAddr{{IP: net.ParseIP("2606:4700:4700::1111")}, {IP: net.ParseIP("127.0.0.1")}, {IP: net.ParseIP("1.1.1.1")}, {IP: net.ParseIP("1.1.1.1")}}, "25")
+	if len(targets) != 2 || targets[0] != "1.1.1.1:25" {
+		t.Fatalf("wrong destination order: %v", targets)
+	}
+}
+func TestInternationalDomainSMTPUsesIDNA(t *testing.T) {
+	app := &application{connectTimeout: time.Second, operationTimeout: time.Second}
+	app.smtpLookupMX = func(_ context.Context, domain string) ([]*net.MX, error) {
+		if domain != "xn--bcher-kva.de" {
+			t.Fatalf("domain was not normalized: %s", domain)
+		}
+		return nil, errors.New("fixture unavailable")
+	}
+	app.runSMTPProbe(context.Background(), "user@bücher.de", "")
+	if classifySMTPReply(552, "5.2.2", "too many messages: mailbox full") != "mailbox_full" {
+		t.Fatal("mailbox full misclassified as rate limiting")
+	}
+}

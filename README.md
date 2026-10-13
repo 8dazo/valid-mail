@@ -10,7 +10,7 @@
 ![WeMe landing page with a pixelated turquoise coastline, centered headline, and toolkit navigation](docs/images/landing.png)
 
 <!-- generated:overview:start -->
-**21 utilities · 19 run in your browser · 2 use the Go API**
+**39 utilities · 37 run in your browser · 2 use the Go API**
 
 WeMe is a calm place to validate, convert, and create. It brings practical open-source tools into consistent workspaces, with a coastal landing page, self-hosted fonts, and a React + TypeScript interface.
 <!-- generated:overview:end -->
@@ -29,6 +29,12 @@ WeMe is a calm place to validate, convert, and create. It brings practical open-
 </details>
 
 <details>
+<summary><strong>A readable README preview, including code</strong></summary>
+<br />
+<img src="docs/images/readme-preview.png" alt="WeMe Markdown workspace rendering its README with monospace code, tables and collapsible sections" width="100%" />
+</details>
+
+<details>
   <summary><strong>Designed for smaller screens, too</strong></summary>
   <br />
   <img src="docs/images/mobile.png" alt="WeMe mobile landing page" width="360" />
@@ -39,16 +45,16 @@ WeMe is a calm place to validate, convert, and create. It brings practical open-
 <!-- generated:tools:start -->
 | Category | Tools |
 | --- | --- |
-| Validation | Email validator · Phone validator · URL inspector · IP address inspector · Work email finder |
-| Conversion | JSON ↔ YAML · XML ↔ JSON · CSV ↔ JSON · Base64 encoder · Timestamp converter · URL encoder |
-| Generators | QR code generator · Password generator · UUID & Nano ID |
-| Developer | JSON formatter · JWT decoder · Cron explainer · Hash generator |
-| Text | Markdown preview · Text compare · Text case converter |
+| Validation | Email validator · Phone validator · URL inspector · IP address inspector · Work email finder · Certificate inspector |
+| Conversion | JSON ↔ YAML · XML ↔ JSON · CSV ↔ JSON · Base64 encoder · Timestamp converter · URL encoder · TOML ↔ JSON · INI ↔ JSON · HTML → Markdown · Color converter · Gzip text compressor |
+| Generators | QR code generator · Password generator · UUID & Nano ID · Barcode generator · ULID generator & inspector |
+| Developer | JSON formatter · JWT decoder · Cron explainer · Hash generator · Regex tester · HTML minifier · CSS minifier · JavaScript minifier · SVG minifier · Bcrypt hash & verify · Cron schedule planner · HMAC generator · Unix permissions calculator |
+| Text | Markdown & README preview · Text compare · Text case converter · Text analyzer |
 
-19 tools execute locally. Email validation and work-email discovery call the same-origin API.
+37 tools execute locally. Email validation and work-email discovery call the same-origin API.
 <!-- generated:tools:end -->
 
-Each tool links to its upstream library. See the [tool research](docs/tool-research.md) and [third-party notices](docs/third-party.md) for sources and licenses.
+Each tool links to its upstream library. All utility logic runs in Go: local tools load a reusable WebAssembly worker, while the two email tools call the Go server. See [competitor and Go-package research](docs/competitor-research.md), [tool foundations](docs/tool-research.md), and [third-party notices](docs/third-party.md).
 
 ## Run locally
 
@@ -63,6 +69,8 @@ ENABLE_SMTP=false ENABLE_PROXY_SMTP=false ./bin/valid-mail
 
 Open `http://localhost:8080`. The server embeds the frontend, so the build script installs locked dependencies and builds the UI before compiling Go. The `toolchain` directive selects the pinned Go version; Node's pin is in `.node-version`.
 
+The build also compiles the Go browser toolkit and fingerprints its assets. Its first use downloads the local engine; later tools reuse it. Inputs stay in the browser. External Markdown images are placeholders unless explicitly enabled.
+
 For hot reload, keep the Go server running and start `npm run dev --prefix frontend` in another terminal. Vite proxies API requests to port 8080. Rebuild the frontend before testing the embedded production bundle.
 
 <!-- generated:stack:start -->
@@ -70,6 +78,18 @@ For hot reload, keep the Go server running and start `npm run dev --prefix front
 | --- | --- | --- |
 | React 19.3.0 · TypeScript 5.9.3 | Go 1.27.2 | Node 24.19.0 · Vite 8.3.4 |
 <!-- generated:stack:end -->
+
+
+### Native Go CLI
+
+The same core can run without the browser:
+
+```bash
+go build -o bin/weme-toolkit ./cmd/weme-toolkit
+printf '%s\n' '{"tool":"color","values":{"input":"#075b53"}}' | ./bin/weme-toolkit
+```
+
+The CLI accepts one JSON request per line and returns a result or error as JSON. It never sends tool inputs to an external service.
 
 ## Deploy
 
@@ -93,7 +113,7 @@ docker run --rm -p 8080:8080 --read-only --cap-drop=ALL \
 
 Render supplies `PORT`; the server binds to all interfaces. Keep the repository root as the service root. Existing manually configured Render services need their build/start settings updated; a Git push alone doesn't change those settings.
 
-**Mailbox checks need a working SMTP route.** DNS validity checks and SMTP reachability are shown separately. Direct SMTP connections and public proxies were inconclusive in the tested Vercel runtime. Use a stable private `SMTP_PROXY_URL` when direct port 25 isn't available. Unknown results show “Not measured,” and confidence never guarantees delivery or mailbox ownership. See the [email API documentation](docs/email-service.md).
+**Mailbox checks need a working SMTP route.** DNS validity checks and SMTP reachability are shown separately. The updated deployment configuration enables SMTP checks. Direct SMTP connections and public proxies were inconclusive in the tested Vercel runtime; configuration alone does not establish a working route. Use a stable private `SMTP_PROXY_URL` when direct port 25 isn't available. Unknown results show “Not measured,” and confidence never guarantees delivery or mailbox ownership. See the [email API documentation](docs/email-service.md).
 
 ## Verify your changes
 
@@ -112,7 +132,7 @@ go vet ./...
 go mod verify
 
 # Keep the built server running before browser checks.
-npx --prefix frontend playwright install chromium
+(cd frontend && npx playwright install chromium)
 npm run test:e2e --prefix frontend
 
 # Check the README against the actual catalog and version pins.
@@ -136,7 +156,7 @@ GitHub Actions runs the production build, unit tests, audits, race tests, browse
 | --- | --- | --- |
 | `PORT` | `8080` | Internal HTTP port |
 | `VERIFY_MAX_CONCURRENCY` | `8` | Concurrent email checks |
-| `ENABLE_SMTP` | `true` | Direct SMTP, requiring outbound port 25; Render Blueprint disables it |
+| `ENABLE_SMTP` | `true` | Direct SMTP, requiring outbound port 25; enabled in the Render Blueprint; runtime egress must support it |
 | `SMTP_PROXY_URL` | empty | Private SOCKS5 route; store credentials securely |
 | `SMTP_TOTAL_TIMEOUT` | `25s` | Total mailbox-check budget |
 | `ENABLE_PROXY_SMTP` | `false` | Optional public SOCKS5 pool |
@@ -149,14 +169,14 @@ Rate limits allow 30 email checks and 10 discovery requests per IP per minute. T
 
 ## Contribute
 
-Add tools to `frontend/src/catalog.ts`, implement their behavior in `frontend/src/toolkit.ts`, and include meaningful validation cases. Then run:
+Add tool metadata to `frontend/src/catalog.ts`, implement a thin Go wrapper in `internal/toolkit`, and register it in the Go dispatcher. Choose a tested Go library or standard-library API and include meaningful correctness and boundary cases. The TypeScript layer handles UI and calls the Go worker. Then run:
 
 ```bash
 npm run docs:update
 npm run docs:check
 ```
 
-The README's catalog, tool counts, and stack versions come directly from source. CI rejects stale generated sections. Update screenshots when the design changes, and document platform settings alongside changes to deployment files.
+The README's catalog, tool counts, and stack versions come directly from source. CI rejects stale generated sections. Update screenshots when the design changes, and document platform settings alongside changes to deployment files. After dependency changes, rebuild notices with `python3 scripts/update-licenses.py`.
 
 Useful links: [Render guide](docs/render-deployment.md) · [Vercel guide](docs/vercel-deployment.md) · [Email service](docs/email-service.md) · [Validation](docs/validation.md) · [Credits and licenses](docs/third-party.md).
 

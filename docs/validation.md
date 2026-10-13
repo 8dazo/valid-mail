@@ -1,29 +1,51 @@
 # Validation evidence
 
-The current implementation was checked in the cloud machine using Node 24 and the checksum-verified Go 1.27.2 toolchain.
+Validated on 13 October 2026 using Node 24.19.0 and checksum-verified Go 1.27.2. WeMe contains 39 tools: 37 local Go/WebAssembly utilities and two Go server email tools. These checks validate the tested workflows and boundaries; they do not guarantee every possible input or external mail provider.
 
-- Strict TypeScript check and Vite production build passed.
-- Twenty-two Vitest tests passed, covering every local tool example, conversion round trips, malformed inputs, standard SHA vectors, password/ID generation, XML/YAML boundaries, Markdown sanitization, CSV formula escaping, API errors, and optional storage.
-- Sixteen Playwright checks passed across desktop Chromium and a mobile Chromium viewport. They exercised the full local collection, search/favorites, direct tool routes, examples, resets, QR downloads, sanitized Markdown, DNS-outage display, SMTP confidence/evidence, finder success/error rendering, reduced motion, and overflow.
-- Go tests passed with the race detector; `go vet` and module checksum verification passed. Checks cover existing library logic, email extraction, bounded/null-MX DNS behavior, live local SMTP protocol fixtures, cancellation/deadlines, proxy consensus/cold starts, private-destination blocking, API parsing, concurrency/rate limits, forwarded-header trust, embedded routing, and browser security headers.
-- `npm audit` reported zero known vulnerabilities across installed runtime and development dependencies at validation time.
-- The Docker production image built through the existing HTTPS egress proxy with TLS verification and the injected public trust bundle. It ran as `nonroot:nonroot` with a read-only filesystem, no capabilities, and resource limits. Embedded UI, health, an inconclusive DNS-error response, and a graceful zero-exit shutdown passed.
-- The Vite development server and same-origin API proxy were checked with live requests.
+## Application checks
 
-## External runtime limits
+| Check | Result | What it exercises |
+| --- | --- | --- |
+| TypeScript and Vite production build | Passed | Strict types, Go/WASM generation, fingerprinted assets and embedded frontend output |
+| Vitest | **22 passed** | Every local example through the real native Go core; conversion round trips, malformed input, known hash vectors, Unicode, passwords/IDs, sanitizer boundaries, API errors and optional browser storage |
+| Playwright, local production bundle | **28 passed** | Desktop and mobile Chromium; all 37 local examples through the actual WASM worker, stable labels, search/favorites, responsive layouts and reduced motion |
+| Playwright, live Vercel staging | **28 passed** | The same desktop/mobile suite through TLS-verifying egress; real deployed assets, worker startup/reuse and local tool execution |
+| Go race tests | Passed | Toolkit correctness/bounds, server APIs, DNS, local SMTP protocol fixtures, private-destination guards, concurrency, deadlines/cancellation, routing and security headers |
+| `go vet` and `go mod verify` | Passed | Static checks and dependency checksum verification |
+| README generation check | Passed | Counts, catalog names and stack versions match application source |
 
-Native DNS in this cloud instance is unavailable. Real MX and public-page requests were therefore verified independently on Vercel, with TLS verification retained. Finder rendering tests use controlled success and failure responses; a separate real hosted finder request fetched example.com successfully and returned zero candidates.
+The browser suite also checks fenced Markdown syntax highlighting and monospace/whitespace styling, GFM tables/task lists/details, standalone HTML downloads, image placeholders, UTF-8 file import, CSV pagination, layout switches, invalidated stale results, real barcode PNG/gzip bytes, regex groups, color swatches, conditional bcrypt controls, API cancellation and reuse of one local engine without API uploads. Email/finder rendering uses controlled responses where required, alongside the independent live API checks below.
 
-The official Go vulnerability scan completed: no vulnerabilities were found in called symbols or imported packages. Five advisories exist in required modules that are not reached by this application. The frontend dependency audit reported zero known vulnerabilities.
+Known-vector and boundary tests cover HMAC/SHA, gzip round trips and expansion limits, large integer preservation, CSV formula escaping/duplicate headers, YAML graph/alias limits, XML roots/DTD/nesting limits, regex time limits and Unicode groups, bcrypt byte/cost limits, cron timezones, certificate private-key rejection and barcode quiet zones. Generated Code 128, Code 39, EAN and QR images were independently decoded with ZXing-C++; the QR payload matched `https://example.com`.
 
-## Live Vercel validation
+## Build and deployment checks
 
-The user claimed the original deployment at https://temporary-sonic-jade-y0jexj7.vercel.app. Its previous anonymous token is invalid, so updating that owned project requires account authentication or a configured Git integration.
+- The native Render build script completed from a clean source snapshot without generated frontend files, installed dependencies or credentials. Its artifact started on `PORT=10000` and passed health, a tool deep link and invalid-email API checks.
+- The four-stage Docker image built with verified Go modules and locked npm dependencies. The injected HTTPS proxy and transient public trust bundle retained TLS verification; proxy credentials were not copied into the image.
+- The image ran as `nonroot:nonroot`, with a read-only filesystem, no capabilities and resource limits. Health, embedded HTML/deep links, invalid-email API handling and the compressed WASM asset passed. SIGTERM produced exit code zero without an OOM.
+- WASM responses used `application/wasm`, gzip and immutable fingerprinted caching; decompressed bytes had the correct WASM magic. The tested first-load transfer was approximately 6.6 MiB compressed (approximately 28 MiB uncompressed). It loads on demand and is reused during SPA tool navigation.
+- A fresh Vercel staging deployment built with the actual Vercel Go SDK and served the upgraded suite. All 28 browser checks passed there. Anonymous previews expire unless claimed; this is staging evidence, not a permanent release.
 
-A new temporary staging deployment at https://temporary-express-silver-e2mqji3.vercel.app was built with the actual Vercel Go SDK. Real syntax and null-MX checks passed. The hosted finder fetched one example.com page and returned success with zero candidates. SMTP was enabled, and a real Gmail-domain check attempted the connection but could not reach the mail servers (approximately 21 seconds). Public proxy mode was also exercised: no healthy SMTP-capable route was available, and direct fallback was inconclusive. These checks demonstrate correct failure handling; they do not establish working public mailbox reachability.
+The currently claimed original project is https://temporary-sonic-jade-y0jexj7.vercel.app. Its old anonymous token is invalid and the observed version still has SMTP disabled. Updating that account-owned project needs owner authentication or its Git deployment integration. No Render dashboard/log credentials or hosted Render URL were available; a successful local Render build does not prove a hosted Render deployment.
 
-All sixteen browser checks also passed against the staging deployment through TLS-verifying cloud egress, across desktop and mobile. Every local utility example completed without runtime errors. Email/finder rendering used controlled responses where necessary, alongside the real hosted API checks above.
+## Live external API checks
 
-The SMTP percentage and evidence UI is restored. Local SMTP protocol fixtures verify recipient acceptance with random-recipient rejection (96% verdict confidence), catch-all acceptance, missing recipients, policy blocks, temporary responses and TLS failure. Request cancellation and total deadlines are enforced. A private SOCKS5 route can be supplied securely using SMTP_PROXY_URL for reliable outbound SMTP. No message body is sent. Mailbox existence stays unknown when no route completes; the UI shows “Not measured” rather than an invented percentage.
+Native DNS is unavailable in this cloud instance. Real public DNS and page fetching were therefore checked on the Vercel runtime, independently of browser rendering mocks.
 
-GitHub's published run summaries confirm that both commits passed remote CI: [af5b9b5](https://github.com/8dazo/valid-mail/actions/runs/38362572569) and [3a06b9d](https://github.com/8dazo/valid-mail/actions/runs/38383333666). The latter exercises the Render build script from a clean runner. These results do not establish a successful Render-hosted deployment or fresh cloud-task restoration.
+| Hosted request | Observed result |
+| --- | --- |
+| Invalid email syntax | `invalid / bad_syntax`; SMTP not attempted |
+| `person@example.com` with `smtp=false` | `invalid / no_mx`; SMTP not attempted |
+| `postmaster@gmail.com` with `smtp=false` | Valid address/domain, MX present; mailbox `unknown / smtp_not_requested`; completed in under one second |
+| `postmaster@gmail.com` with `smtp=true` | SMTP enabled and attempted; connection failed after approximately 9 seconds; valid address/domain, mailbox `unknown / smtp_connection_failed` |
+| Finder for Ada Lovelace at example.com | Success; one public page fetched, zero observed emails/candidates |
+
+SMTP protocol fixtures verify a recipient accepted while random recipients are rejected (96% verdict confidence), catch-all acceptance, nonexistent/disabled/full mailboxes, provider policy blocks, temporary replies, verified STARTTLS failure, deadlines and cancellation. Quick checks skip SMTP. Public IPv4/IPv6 destinations are vetted and pinned against DNS rebinding; alternate-IP attempts are bounded. IDN domains are normalized before mail-server lookup.
+
+These fixtures establish protocol handling. The real hosted connection failure does **not** establish working public mailbox reachability. Reliable mailbox probing still needs supported outbound port-25 connectivity or a stable private SOCKS5 route configured securely as `SMTP_PROXY_URL`, with an appropriate sender/HELO identity. No message body is sent. An unavailable route leaves mailbox existence unknown and the UI displays **Not measured**, rather than a fabricated percentage.
+
+## Dependency checks
+
+The frontend audit reported zero known vulnerabilities. The official Go vulnerability scan found no vulnerable called symbols or imported packages; one advisory remains in an unused package of a required module. This is not a claim that every dependency is vulnerability-free. Runtime notices cover the actual shipped dependency graph; the GPL JSON-repair candidate was replaced with an MIT implementation before shipment.
+
+GitHub CI runs the clean Render build, README check, formatting, frontend tests/audit, Go race/vet checks and full browser suite on pushes to `main` and pull requests. Current local/deployed evidence is recorded above; remote CI status belongs to the corresponding GitHub run. Recheck audits and upstream versions when dependencies change. Saved cloud setup instructions have been updated for the Go worker; saving them does not publish a snapshot or prove restoration in a new task.

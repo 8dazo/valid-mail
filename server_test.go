@@ -1,8 +1,12 @@
 package main
 
 import (
+	"compress/gzip"
+	"context"
 	"encoding/json"
 	"errors"
+	"io"
+	"io/fs"
 	"net"
 	"net/http/httptest"
 	"strings"
@@ -35,7 +39,7 @@ func TestFrontendRoutesAndSecurity(t *testing.T) {
 			t.Fatal("HTML must revalidate")
 		}
 		csp := r.Header().Get("Content-Security-Policy")
-		if !strings.Contains(csp, "script-src 'self';") || !strings.Contains(csp, "frame-ancestors 'none'") {
+		if !strings.Contains(csp, "script-src 'self' 'wasm-unsafe-eval';") || !strings.Contains(csp, "frame-ancestors 'none'") {
 			t.Fatalf("weak CSP: %s", csp)
 		}
 	}
@@ -147,5 +151,62 @@ func TestForwardedHeadersRequireExplicitTrust(t *testing.T) {
 	r.Header.Set("X-Forwarded-For", "spoofed")
 	if requestIP(r) != "192.0.2.1" {
 		t.Fatal("invalid forwarded IP accepted")
+	}
+}
+
+func TestQuickEmailCheckDoesNotProbeSMTP(t *testing.T) {
+	app := testApplication()
+	app.directSMTP = true
+	app.smtpSlots = make(chan struct{}, 1)
+	app.baseVerifier = fakeVerifier{result: &emailverifier.Result{Email: "hello@example.com", Syntax: emailverifier.Syntax{Valid: true}, HasMxRecords: true}}
+	app.smtpProbe = func(context.Context, string, string) singleSMTPProbe {
+		t.Fatal("quick check attempted SMTP")
+		return singleSMTPProbe{}
+	}
+	recorder := httptest.NewRecorder()
+	app.routes().ServeHTTP(recorder, httptest.NewRequest("POST", "/api/verify", strings.NewReader(`{"email":"hello@example.com","smtp":false}`)))
+	var response verifyResponse
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	if recorder.Code != 200 || response.SMTPAttempted || response.Reachability.Reason != "smtp_not_requested" {
+		t.Fatalf("wrong quick-check result: %s", recorder.Body.String())
+	}
+}
+
+func TestLocalGoAssetsAreCompressedAndImmutable(t *testing.T) {
+	names, err := fs.Glob(frontendBundle, "frontend/dist/wasm/toolkit-*.wasm")
+	if err != nil || len(names) != 1 {
+		t.Fatalf("expected one generated toolkit artifact: %v %v", names, err)
+	}
+	path := strings.TrimPrefix(names[0], "frontend/dist")
+	request := httptest.NewRequest("GET", path, nil)
+	request.Header.Set("Accept-Encoding", "gzip")
+	response := httptest.NewRecorder()
+	testApplication().routes().ServeHTTP(response, request)
+	if response.Code != 200 || response.Header().Get("Content-Type") != "application/wasm" || response.Header().Get("Content-Encoding") != "gzip" || !strings.Contains(response.Header().Get("Cache-Control"), "immutable") {
+		t.Fatalf("wrong wasm headers: %v", response.Header())
+	}
+	reader, err := gzip.NewReader(response.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reader.Close()
+	magic := make([]byte, 4)
+	if _, err := io.ReadFull(reader, magic); err != nil || string(magic) != "\x00asm" {
+		t.Fatal("served gzip is not a WebAssembly module")
+	}
+	for _, encoding := range []string{"gzip;q=0", "br", "gzip;q=invalid"} {
+		request = httptest.NewRequest("HEAD", path, nil)
+		request.Header.Set("Accept-Encoding", encoding)
+		response = httptest.NewRecorder()
+		testApplication().routes().ServeHTTP(response, request)
+		if response.Code != 200 || response.Header().Get("Content-Encoding") != "" || response.Body.Len() != 0 {
+			t.Fatalf("incorrect encoding negotiation for %s", encoding)
+		}
+	}
+	csp := response.Header().Get("Content-Security-Policy")
+	if !strings.Contains(csp, "worker-src 'self'") || strings.Contains(csp, "'unsafe-eval'") {
+		t.Fatal("worker policy must allow local WASM without broad JS eval")
 	}
 }
