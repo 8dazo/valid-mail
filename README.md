@@ -73,7 +73,7 @@ docker run --rm -p 8080:8080 --read-only --cap-drop=ALL \
   --security-opt=no-new-privileges --memory=512m --cpus=2 weme
 ```
 
-The multi-stage Docker build installs frozen npm dependencies, builds the frontend, verifies Go dependencies, and produces a static binary. The final distroless image runs as a non-root user. `render.yaml` declares the Docker service and `/healthz` health check. TLS should terminate at the hosting platform or reverse proxy; the application serves HTTP internally. No deployment is published by local build commands.
+The multi-stage Docker build installs frozen npm dependencies, builds the frontend, verifies Go dependencies, and produces a static binary. The final distroless image runs as a non-root user. `render.yaml` preserves the existing native Go service and uses `scripts/render-build.sh` to build the frontend before the server. See the [Render deployment instructions](docs/render-deployment.md) for existing service settings. TLS should terminate at the hosting platform or reverse proxy; the application serves HTTP internally. No deployment is published by local build commands.
 
 On this cloud machine, use `python3 scripts/cloud-docker-build.py` to build through the already injected HTTPS proxy. The helper supplies its host mapping and mounts the existing public CA bundle transiently, preserving TLS verification. It never writes proxy credentials into repository files or the final image.
 

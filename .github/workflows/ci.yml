@@ -18,14 +18,16 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '1.27.2'
-      - run: npm ci && npm run format:check && npm run build && npm test && npm audit
+      - name: Build the Render application from a clean checkout
+        run: bash scripts/render-build.sh
+      - run: npm run format:check && npm test && npm audit
         working-directory: frontend
-      - run: go test -race -count=1 ./... && go vet ./... && go build -mod=readonly -o bin/weme .
+      - run: go test -race -count=1 ./... && go vet ./...
       - run: npx playwright install --with-deps chromium
         working-directory: frontend
       - name: Run browser tests against the embedded production bundle
         run: |
-          ./bin/weme >/tmp/weme.log 2>&1 &
+          ./bin/valid-mail >/tmp/weme.log 2>&1 &
           server_pid=$!
           trap 'kill "$server_pid"' EXIT
           curl --fail --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:8080/healthz

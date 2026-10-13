@@ -1,13 +1,18 @@
 services:
   - type: web
-    name: weme
-    runtime: docker
+    name: valid-mail
+    runtime: go
     plan: free
     region: singapore
-    dockerfilePath: ./Dockerfile
+    buildCommand: bash scripts/render-build.sh
+    startCommand: ./bin/valid-mail
     healthCheckPath: /healthz
     autoDeploy: true
     envVars:
+      - key: GO_VERSION
+        value: "1.27.2"
+      - key: NODE_VERSION
+        value: "24.19.0"
       - key: ENABLE_SMTP
         value: "false"
       - key: ENABLE_PROXY_SMTP
