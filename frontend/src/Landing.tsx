@@ -693,10 +693,6 @@ export function LandingIntro({
   );
 }
 
-function ShieldMark() {
-  return <Check size={13} />;
-}
-
 export function LandingOutro({
   count,
   localCount,
