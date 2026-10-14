@@ -1,0 +1,34 @@
+name: Prepare PDF Studio source files
+on:
+  push:
+    branches: [feat/pdf-studio-editor]
+permissions:
+  contents: write
+jobs:
+  prepare:
+    if: github.event.head_commit.message != 'chore(pdf): sync generated sources'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.19.0'
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: '1.27.2'
+      - name: Sync source formatting and module checksums
+        run: |
+          go mod tidy
+          gofmt -w pdf_editor.go
+          npm ci --prefix frontend --no-fund
+          npx --prefix frontend prettier --write frontend/src/PDFStudio.tsx frontend/src/App.tsx frontend/src/catalog.ts frontend/src/main.tsx frontend/src/pdf-studio.css
+          npm run docs:update
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add go.mod go.sum pdf_editor.go frontend/src/PDFStudio.tsx frontend/src/App.tsx frontend/src/catalog.ts frontend/src/main.tsx frontend/src/pdf-studio.css README.md
+          if ! git diff --cached --quiet; then
+            git commit -m 'chore(pdf): sync generated sources'
+            git push origin HEAD:feat/pdf-studio-editor
+          fi
