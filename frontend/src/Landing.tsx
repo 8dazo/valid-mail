@@ -1,4 +1,3 @@
-import { useId } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
 import {
@@ -19,188 +18,30 @@ import {
 type OpenTool = (id: string) => void;
 
 function ToolkitArt({ kind }: { kind: "check" | "tidy" | "make" }) {
-  const id = useId().replaceAll(":", "");
+  const art = {
+    check: "/images/editorial/tool-email.webp",
+    tidy: "/images/editorial/tool-code.webp",
+    make: "/images/editorial/tool-qr.webp",
+  }[kind];
+
   return (
-    <svg className="toolkit-art" viewBox="0 0 320 210" aria-hidden="true">
-      <defs>
-        <linearGradient id={`${id}-paper`} x2="0.8" y2="1">
-          <stop stopColor="#fff" />
-          <stop offset="1" stopColor="#e5dcfb" />
-        </linearGradient>
-        <linearGradient id={`${id}-purple`} x2="0.8" y2="1">
-          <stop stopColor="#ccb7ed" />
-          <stop offset="1" stopColor="#8d70bd" />
-        </linearGradient>
-        <filter
-          id={`${id}-shadow`}
-          x="-30%"
-          y="-30%"
-          width="160%"
-          height="180%"
-        >
-          <feDropShadow
-            dx="0"
-            dy="8"
-            stdDeviation="4"
-            floodColor="#725197"
-            floodOpacity=".14"
-          />
-        </filter>
-      </defs>
-      <ellipse cx="162" cy="187" rx="100" ry="10" fill="#715492" opacity=".1" />
-      {kind === "check" ? (
-        <g className="toolkit-art-main" filter={`url(#${id}-shadow)`}>
-          <rect
-            x="88"
-            y="35"
-            width="145"
-            height="112"
-            rx="15"
-            fill={`url(#${id}-paper)`}
-            stroke="#b29bcf"
-            strokeWidth="2"
-            transform="rotate(-9 160 95)"
-          />
-          <path
-            d="M66 99h184v70a14 14 0 0 1-14 14H80a14 14 0 0 1-14-14z"
-            fill="#c3abeb"
-            stroke="#9b7ebd"
-            strokeWidth="2"
-          />
-          <path
-            d="m67 102 91 58 91-58M67 176l60-49m122 49-60-49"
-            fill="none"
-            stroke="#9b7ebd"
-            strokeWidth="2"
-          />
-          <circle
-            cx="231"
-            cy="151"
-            r="31"
-            fill="#d5edcb"
-            stroke="#83ad7b"
-            strokeWidth="2"
-          />
-          <path
-            d="m216 151 10 10 19-22"
-            fill="none"
-            stroke="#598150"
-            strokeWidth="5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M127 60h57m-57 13h39"
-            stroke="#baaad1"
-            strokeWidth="4"
-            strokeLinecap="round"
-          />
-        </g>
-      ) : kind === "tidy" ? (
-        <g className="toolkit-art-main" filter={`url(#${id}-shadow)`}>
-          <rect
-            x="117"
-            y="45"
-            width="125"
-            height="145"
-            rx="13"
-            fill="#b9d5ee"
-            stroke="#88accb"
-            strokeWidth="2"
-            transform="rotate(12 180 110)"
-          />
-          <rect
-            x="76"
-            y="28"
-            width="125"
-            height="145"
-            rx="13"
-            fill={`url(#${id}-paper)`}
-            stroke="#b29bcf"
-            strokeWidth="2"
-            transform="rotate(-8 140 100)"
-          />
-          <path
-            d="M111 62h49m-49 14h67m-67 14h38"
-            stroke="#b7a4d1"
-            strokeWidth="4"
-            strokeLinecap="round"
-          />
-          <rect
-            x="113"
-            y="108"
-            width="87"
-            height="57"
-            rx="12"
-            fill={`url(#${id}-purple)`}
-            stroke="#9474b9"
-            strokeWidth="2"
-          />
-          <text
-            x="156"
-            y="147"
-            textAnchor="middle"
-            fill="#fff"
-            fontSize="31"
-            fontFamily="monospace"
-          >
-            {"{ }"}
-          </text>
-        </g>
-      ) : (
-        <g className="toolkit-art-main" filter={`url(#${id}-shadow)`}>
-          <rect
-            x="83"
-            y="43"
-            width="130"
-            height="143"
-            rx="18"
-            fill="#ebcbe4"
-            stroke="#bd95b8"
-            strokeWidth="2"
-            transform="rotate(-10 145 110)"
-          />
-          <rect
-            x="104"
-            y="28"
-            width="130"
-            height="143"
-            rx="18"
-            fill={`url(#${id}-paper)`}
-            stroke="#b29bcf"
-            strokeWidth="2"
-          />
-          <g fill="#967ab8">
-            <path d="M122 46h32v32h-32zm47 0h32v32h-32zm-47 47h32v32h-32z" />
-            <path d="M169 94h11v11h-11zm21 0h11v21h-11zm-21 22h22v10h-22zm21 10h12v12h-12z" />
-          </g>
-          <g fill="#f7f2ff">
-            <path d="M130 54h16v16h-16zm47 0h16v16h-16zm-47 47h16v16h-16z" />
-          </g>
-          <circle
-            cx="226"
-            cy="153"
-            r="29"
-            fill="#f8ddb8"
-            stroke="#cbaa82"
-            strokeWidth="2"
-          />
-          <path
-            d="m226 134 5 13 13 5-13 5-5 13-5-13-13-5 13-5z"
-            fill="#b893cf"
-          />
-        </g>
-      )}
-      <path d="m47 49 4 8 8 4-8 4-4 8-4-8-8-4 8-4z" fill="#b899d7" />
-      <circle cx="272" cy="79" r="6" fill="#e9b5ce" />
-      <circle cx="54" cy="144" r="4" fill="#91bcb0" />
-      <path
-        d="m260 31 8 6m-7 2 6-9"
-        stroke="#a2c6b3"
-        strokeWidth="3"
-        strokeLinecap="round"
-      />
-    </svg>
+    <div className={`toolkit-art-scene toolkit-art-scene--${kind}`} aria-hidden="true">
+      <svg className="toolkit-orbit" viewBox="0 0 320 210" fill="none">
+        <ellipse cx="158" cy="110" rx="126" ry="69" stroke="#B6A0CD" strokeWidth="1.5" strokeDasharray="4 8" opacity=".63" />
+        <path d="M47 47l4 11 11 4-11 4-4 11-4-11-11-4 11-4z" fill="#AD91CF" />
+        <circle cx="276" cy="75" r="7" fill="#B7DCC8" />
+        <circle cx="73" cy="162" r="5" fill="#E7B8CB" />
+        <path d="M270 138l6 13 13 6-13 6-6 13-6-13-13-6 13-6z" fill="#DFC6F4" />
+        {kind === "check" ? (
+          <path d="m258 32 7 7 14-15" stroke="#7FBA92" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        ) : kind === "tidy" ? (
+          <path d="M247 34h28M247 41h19M247 48h24" stroke="#9E82BF" strokeWidth="3" strokeLinecap="round" />
+        ) : (
+          <g stroke="#B593D9" strokeWidth="2"><path d="M259 28v20m-10-10h20M77 20v12m-6-6h12" /></g>
+        )}
+      </svg>
+      <img src={art} alt="" loading="lazy" decoding="async" />
+    </div>
   );
 }
 
@@ -540,29 +381,25 @@ export function LandingIntro({
         className="studio-human-connection"
         aria-labelledby="human-connection-title"
       >
-        <div className="container human-connection-layout">
-          <div className="human-connection-copy">
-            <span className="studio-kicker">
-              HUMAN IDEAS, THOUGHTFUL TECHNOLOGY
-            </span>
-            <h2 id="human-connection-title">
-              Made for your ideas.
-              <br />
-              Not the other way around.
-            </h2>
-            <p>
-              The best tools get out of your way, so you can focus on what
-              matters: making something good.
-            </p>
-          </div>
-          <div className="human-connection-visual" aria-hidden="true">
-            <img
-              src="/images/editorial/human-ai-hands.webp"
-              alt=""
-              loading="lazy"
-              decoding="async"
-            />
-          </div>
+        <div className="human-connection-copy container">
+          <span className="studio-kicker">HUMAN IDEAS, THOUGHTFUL TECHNOLOGY</span>
+          <h2 id="human-connection-title">
+            Made for your ideas.
+            <br />
+            Not the other way around.
+          </h2>
+          <p>
+            The best tools get out of your way, so you can focus on what
+            matters: making something good.
+          </p>
+        </div>
+        <div className="human-connection-panorama" aria-hidden="true">
+          <img
+            src="/images/editorial/hands-wide.webp"
+            alt=""
+            loading="lazy"
+            decoding="async"
+          />
         </div>
       </section>
       <section className="studio-tour container" aria-labelledby="tour-title">
@@ -625,13 +462,12 @@ export function LandingIntro({
               </div>
             </div>
           </div>
-          <img
-            className="tour-editorial-detail"
-            src="/images/editorial/workspace-details.webp"
-            alt=""
-            loading="lazy"
-            decoding="async"
-          />
+          <svg className="tour-editorial-symbol" viewBox="0 0 112 112" aria-hidden="true">
+            <circle cx="56" cy="56" r="45" fill="#FAF5FF" stroke="#CBB7E4" strokeWidth="1.5" />
+            <circle cx="56" cy="56" r="33" fill="none" stroke="#D4C5E7" strokeWidth="1.3" strokeDasharray="3 5" />
+            <path d="M43 42c-7 0-7 7-7 13s-3 8-7 8c4 0 7 2 7 8s0 13 7 13m26-42c7 0 7 7 7 13s3 8 7 8c-4 0-7 2-7 8s0 13-7 13" fill="none" stroke="#8F6AB8" strokeWidth="4.2" strokeLinecap="round" />
+            <path d="m57 22 3 7 7 3-7 3-3 7-3-7-7-3 7-3z" fill="#AF96CF" />
+          </svg>
           <div className="tour-sticker">
             <Sparkles size={20} /> Less busywork.
             <br />
@@ -727,47 +563,38 @@ export function LandingOutro({
         aria-labelledby="pass-title"
       >
         <div className="studio-pass-inner container">
-          <img
-            className="pass-editorial-art"
-            src="/images/editorial/open-source-glass.webp"
-            alt=""
-            loading="lazy"
-            decoding="async"
-          />
           <span className="studio-kicker">THE EVERYDAY PASS</span>
-          <h2 id="pass-title">Good tools are for everyone.</h2>
+          <h2 id="pass-title">
+            Good tools are for <em>everyone.</em>
+          </h2>
           <p>
-            No subscriptions. No sign-up. Just a little help when you need it.
+            One generous plan. No subscriptions, no sign-up.
+            <br />
+            Just a little help when you need it.
           </p>
-          <div className="pass-card">
-            <div className="pass-card-paper">
-              <span className="pass-spark">
-                <Sparkles size={19} /> WeMe, all yours
-              </span>
-              <strong>
-                Free<span>to make things happen</span>
-              </strong>
-              <ul>
-                <li>
-                  <Check size={13} /> All {count} tools in one collection
-                </li>
-                <li>
-                  <Check size={13} /> Examples to get you started
-                </li>
-                <li>
-                  <Check size={13} /> Copy and download your results
-                </li>
-                <li>
-                  <Check size={13} /> Open-source foundations
-                </li>
-              </ul>
+          <div className="pass-card-stage">
+            <div className="pass-card-spark pass-card-spark--one" aria-hidden="true"><Sparkles size={23} /></div>
+            <div className="pass-card-spark pass-card-spark--two" aria-hidden="true"><Sparkles size={16} /></div>
+            <div className="pass-card">
+              <div className="pass-card-paper">
+                <span className="pass-spark"><Sparkles size={17} /> WeMe, all yours</span>
+                <div className="pass-plan-head">
+                  <span className="pass-plan-label">ONE PLAN. ALL YOUR TOOLS.</span>
+                  <strong>Free</strong>
+                  <span className="pass-plan-period">₹0 · forever</span>
+                </div>
+                <div className="pass-plan-divider" />
+                <ul>
+                  <li><span className="pass-feature-icon"><Check size={14} /></span> All {count} tools in one collection</li>
+                  <li><span className="pass-feature-icon"><Check size={14} /></span> Examples to get you started</li>
+                  <li><span className="pass-feature-icon"><Check size={14} /></span> Copy and download your results</li>
+                  <li><span className="pass-feature-icon"><Check size={14} /></span> Open-source foundations</li>
+                </ul>
+                <button className="button studio-button pass-primary-action" onClick={() => onSection("tools")}>
+                  Find your next shortcut <ArrowRight size={17} />
+                </button>
+              </div>
             </div>
-            <button
-              className="button studio-button"
-              onClick={() => onSection("tools")}
-            >
-              Find your next shortcut <ArrowRight size={15} />
-            </button>
           </div>
           <a
             className="studio-source-link"
