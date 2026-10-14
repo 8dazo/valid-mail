@@ -4,6 +4,8 @@ Deploy the repository root, not just `frontend/`. The current Vercel Go framewor
 
 `vercel.json` selects the Go framework, installs frozen frontend dependencies, compiles the local Go/WebAssembly toolkit, builds the frontend and server, uses the project’s default function duration, enables bounded direct SMTP checks, and disables public proxy/background metadata updates. The root package.json selects Node 24. The Go toolchain directive selects Go 1.27.2. The native server build uses `-buildvcs=false` because `.vercelignore` strips Git metadata from Vercel build checkouts; version stamping against a partial `.git` directory otherwise fails. No Render backend URL or cross-origin API proxy is required.
 
+Live production site: **https://valid-mail-chi.vercel.app**. GitHub pushes to `main` deploy automatically.
+
 ## Automatic deployments from GitHub
 
 Connect the Vercel project to [8dazo/valid-mail](https://github.com/8dazo/valid-mail). In an existing project, open **Settings → Git → Connect Git Repository**. For a new permanent project, use **Add New → Project → Import Git Repository**. Allow the Vercel GitHub App to access this repository if prompted.

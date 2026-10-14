@@ -10,6 +10,7 @@ Validated on 13 October 2026 using Node 24.19.0 and checksum-verified Go 1.27.2.
 | Vitest | **22 passed** | Every local example through the real native Go core; conversion round trips, malformed input, known hash vectors, Unicode, passwords/IDs, sanitizer boundaries, API errors and optional browser storage |
 | Playwright, local production bundle | **30 passed** | Desktop and mobile Chromium; all 37 local examples through the actual WASM worker, stable labels, search/favorites, responsive layouts and reduced motion |
 | Playwright, live Vercel staging | **30 passed** | The same desktop/mobile suite through TLS-verifying egress; real deployed assets, worker startup/reuse and local tool execution |
+| Playwright, Git-deployed Vercel production (14 October) | **30 passed** | The complete desktop/mobile suite against the permanent production deployment, including all 37 local tool examples |
 | Go race tests | Passed | Toolkit correctness/bounds, server APIs, DNS, local SMTP protocol fixtures, private-destination guards, concurrency, deadlines/cancellation, routing and security headers |
 | `go vet` and `go mod verify` | Passed | Static checks and dependency checksum verification |
 | README generation check | Passed | Counts, catalog names and stack versions match application source |
@@ -28,7 +29,9 @@ Known-vector and boundary tests cover HMAC/SHA, gzip round trips and expansion l
 - WASM responses used `application/wasm`, gzip and immutable fingerprinted caching; decompressed bytes had the correct WASM magic. The tested first-load transfer was approximately 6.6 MiB compressed (approximately 28 MiB uncompressed). It loads on demand and is reused during SPA tool navigation.
 - A fresh Vercel staging deployment built with the actual Vercel Go SDK and served the upgraded suite. All 30 browser checks passed there. Anonymous previews expire unless claimed; this is staging evidence, not a permanent release.
 
-The currently claimed original project is https://temporary-sonic-jade-y0jexj7.vercel.app. Its old anonymous token is invalid and the observed version still has SMTP disabled. Updating that account-owned project needs owner authentication or its Git deployment integration. No Render dashboard/log credentials or hosted Render URL were available; a successful local Render build does not prove a hosted Render deployment.
+On 14 October 2026, owner sign-in and native Git integration were verified. A push of [833a405](https://github.com/8dazo/valid-mail/commit/833a405f30d19d3f8f9d2ab3c6d7d0b4d85c9177) triggered production deployments with `source=git`, branch `main` and the matching commit SHA. The `valid-mail`, `frontend` and `sonic-jade-y0jexj7` projects reached Ready; all 30 browser checks passed on the permanent frontend domain. The primary site is https://valid-mail-chi.vercel.app. Its HTML, deep links, health and invalid-email API handling passed live checks. The previously claimed `sonic-jade-y0jexj7` project is also connected to the repository, and both of its public domains passed health checks on the upgraded SMTP-enabled build. No manual deployment command was used for this verification.
+
+The remote Git build failure was reproduced with a partial `.git` directory and corrected using `-buildvcs=false`. The frontend-only project’s root was corrected to the repository root with the Go framework. No Render dashboard/log credentials or hosted Render URL were available; a successful local Render build does not prove a hosted Render deployment.
 
 ## Live external API checks
 

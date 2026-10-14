@@ -89,7 +89,7 @@ The Go toolkit is compiled to a local WebAssembly worker. It is loaded on demand
 
 Validation limits include 100,000 input characters, bounded regex work, limited CSV columns, YAML graph/alias limits, XML nesting limits, bcrypt cost/byte limits, bounded barcode sizes, gzip output limits and a capped result size. Details are reflected in tool errors and notices.
 
-SMTP configuration alone cannot guarantee reachability. A real mail-server connection and usable route are required. The currently claimed Vercel site still serves the old SMTP-disabled deployment; updating its repository does not authenticate or redeploy that account-owned project. Render Free/direct egress and public SOCKS5 availability also require runtime verification. A private SMTP-capable route and sender identity can improve successful checks; connection failures remain unknown, never a fabricated percentage.
+SMTP configuration alone cannot guarantee reachability. A real mail-server connection and usable route are required. The Vercel production projects are now connected to GitHub and use the SMTP-enabled configuration. This enables attempts, but a reachable SMTP route is still required. Render Free/direct egress and public SOCKS5 availability also require runtime verification. A private SMTP-capable route and sender identity can improve successful checks; connection failures remain unknown, never a fabricated percentage.
 
 ## Next collections
 

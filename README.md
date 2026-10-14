@@ -3,6 +3,7 @@
   <h1>WeMe</h1>
   <p><strong>Less friction. More creating.</strong></p>
   <p>Everyday tools, all in one calm place.</p>
+  <p><a href="https://valid-mail-chi.vercel.app"><strong>Open WeMe ↗</strong></a></p>
   <a href="https://github.com/8dazo/valid-mail/actions/workflows/ci.yml"><img src="https://github.com/8dazo/valid-mail/actions/workflows/ci.yml/badge.svg" alt="Build and tests" /></a>
   <p><a href="#the-toolkit">Explore the tools</a> · <a href="#run-locally">Get started</a> · <a href="#deploy">Deploy</a> · <a href="#contribute">Contribute</a></p>
 </div>
@@ -97,7 +98,7 @@ The CLI accepts one JSON request per line and returns a result or error as JSON.
 | Platform | Setup | Deployment guide |
 | --- | --- | --- |
 | **Render** | Native Go service; build `bash scripts/render-build.sh`, start `./bin/valid-mail` | [Existing service settings and troubleshooting](docs/render-deployment.md) |
-| **Vercel** | Deploy the repository root with `vercel.json` | [Go framework deployment](docs/vercel-deployment.md) |
+| **Vercel** | GitHub-connected; pushes to `main` deploy automatically | [Go framework deployment](docs/vercel-deployment.md) |
 | **Docker** | Frontend + Go build; static binary in a nonroot distroless image | Commands below |
 
 <details>
