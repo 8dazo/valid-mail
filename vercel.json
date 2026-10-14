@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "go",
   "installCommand": "",
-  "buildCommand": "npm ci --prefix frontend --no-fund && npm run build --prefix frontend && go build -mod=readonly -trimpath -o \"$VERCEL_OUTPUT_FILE\" .",
+  "buildCommand": "npm ci --prefix frontend --no-fund && npm run build --prefix frontend && go build -buildvcs=false -mod=readonly -trimpath -o \"$VERCEL_OUTPUT_FILE\" .",
   "env": {
     "ENABLE_SMTP": "true",
     "ENABLE_PROXY_SMTP": "false",

@@ -2,7 +2,7 @@
 
 Deploy the repository root, not just `frontend/`. The current Vercel Go framework supports a standalone Go HTTP server. The frontend is built first and embedded in the server binary, so the same deployment serves the UI, deep links, assets, email validation, and work-email discovery.
 
-`vercel.json` selects the Go framework, installs frozen frontend dependencies, compiles the local Go/WebAssembly toolkit, builds the frontend and server, uses the project’s default function duration, enables bounded direct SMTP checks, and disables public proxy/background metadata updates. The root package.json selects Node 24. The Go toolchain directive selects Go 1.27.2. No Render backend URL or cross-origin API proxy is required.
+`vercel.json` selects the Go framework, installs frozen frontend dependencies, compiles the local Go/WebAssembly toolkit, builds the frontend and server, uses the project’s default function duration, enables bounded direct SMTP checks, and disables public proxy/background metadata updates. The root package.json selects Node 24. The Go toolchain directive selects Go 1.27.2. The native server build uses `-buildvcs=false` because `.vercelignore` strips Git metadata from Vercel build checkouts; version stamping against a partial `.git` directory otherwise fails. No Render backend URL or cross-origin API proxy is required.
 
 ## Automatic deployments from GitHub
 
@@ -34,7 +34,7 @@ vercel deploy --prod --yes
 
 If an automation token is supplied securely in the environment, use `vercel deploy --prod --yes --token "$VERCEL_TOKEN"`. Do not commit tokens, project credentials, or environment files.
 
-The CLI supports `vercel deploy --temporary --yes` without login. After network access was applied, this succeeded for WeMe. The temporary site is https://temporary-sonic-jade-y0jexj7.vercel.app and was verified live. The user has since claimed that project. Its original anonymous deployment token can no longer update it; redeployment requires the owning account’s authentication or its Git integration. Deployment credentials are kept only in the ignored .vercel directory.
+The CLI supports `vercel deploy --temporary --yes` without login. These previews expire unless claimed and are not a replacement for Git integration. The previously claimed `sonic-jade-y0jexj7` project is now connected to this repository, alongside the `valid-mail` project. Both use `main` for production. Project linking metadata is kept in the ignored `.vercel` directory; account credentials are stored outside the checkout.
 
 ## Verify
 
@@ -46,7 +46,7 @@ The CLI supports `vercel deploy --temporary --yes` without login. After network 
 
 ## Cloud access prerequisites
 
-The current cloud proxy initially denies `vercel.com` and `api.vercel.com`; the needed domains are saved in the environment draft, together with a personal VERCEL_TOKEN requirement for authenticated production deployment. Network access has since been verified, and anonymous deployment succeeded. A token or Vercel CLI login is still needed for authenticated deployment; claiming the temporary site can be done in the browser. Saving a draft alone does not authenticate the CLI or publish the site.
+The current cloud proxy initially denies `vercel.com` and `api.vercel.com`; the needed domains are saved in the environment draft, together with a personal VERCEL_TOKEN requirement for authenticated production deployment. Network access has since been verified, and anonymous deployment succeeded. Account sign-in has now been verified and the repository is connected. Future Git-based deployments use Vercel’s GitHub integration and do not depend on this cloud session staying signed in. Saving a cloud draft alone does not authenticate the CLI or publish the site.
 
 ## Mailbox verification
 
