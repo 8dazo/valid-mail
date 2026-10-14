@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { ChangeEvent, PointerEvent } from "react";
+import type { ChangeEvent, DragEvent, MouseEvent, PointerEvent } from "react";
 import {
   ArrowLeft, ArrowRight, Check, ChevronLeft, ChevronRight, Download, FilePlus2,
   FileText, Highlighter, ImagePlus, Layers, LoaderCircle, MousePointer2,
@@ -168,11 +168,11 @@ export default function PDFStudio({ onBack, onRun }: { onBack: () => void; onRun
     setFormValues({}); setPages("1");
     setFile(fileCandidate);
   }
-  function onDrop(event: React.DragEvent<HTMLDivElement>) {
+  function onDrop(event: DragEvent<HTMLDivElement>) {
     event.preventDefault();
     choose(event.dataTransfer.files[0] ?? null);
   }
-  function place(event: React.MouseEvent<HTMLImageElement>) {
+  function place(event: MouseEvent<HTMLImageElement>) {
     if (!currentSize || !placeable.includes(action) || showOutput) return;
     const b = event.currentTarget.getBoundingClientRect();
     setX(Math.round((event.clientX - b.left) / b.width * currentSize.width).toString());
