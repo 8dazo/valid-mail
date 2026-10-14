@@ -457,17 +457,11 @@ export function LandingIntro({
             viewport={{ once: true, amount: 0.15 }}
             transition={{ duration: 0.55, ease: "easeOut" }}
           >
-            <div className="feature-mini">
-              <span>
-                <MailCheck size={14} /> Email check
+            <div className="feature-mini editorial-feature-art">
+              <img src="/images/editorial/feature-check.webp" alt="" loading="lazy" decoding="async" />
+              <span className="editorial-feature-tag">
+                <MailCheck size={14} /> Check an address
               </span>
-              <div className="mini-input">
-                hello@yourcompany.com
-                <Check size={15} />
-              </div>
-              <div className="mini-evidence">
-                <ShieldMark /> Address &amp; domain checks
-              </div>
             </div>
             <span className="feature-step">01 / CHECK</span>
             <h3>A little more certainty.</h3>
@@ -486,18 +480,11 @@ export function LandingIntro({
             viewport={{ once: true, amount: 0.15 }}
             transition={{ duration: 0.55, ease: "easeOut" }}
           >
-            <div className="feature-mini mini-code">
-              <span>
-                <Braces size={14} /> JSON formatter
+            <div className="feature-mini editorial-feature-art">
+              <img src="/images/editorial/feature-tidy.webp" alt="" loading="lazy" decoding="async" />
+              <span className="editorial-feature-tag">
+                <Braces size={14} /> Tidy your data
               </span>
-              <pre>
-                {'{\n  "a_little": "less mess",\n  "a_lot": "more clarity"\n}'}
-              </pre>
-              <div className="mini-tools">
-                <Copy size={14} />
-                <span>Clean. Readable. Ready.</span>
-                <Download size={14} />
-              </div>
             </div>
             <span className="feature-step">02 / TIDY</span>
             <h3>Give the mess some shape.</h3>
@@ -516,18 +503,11 @@ export function LandingIntro({
             viewport={{ once: true, amount: 0.15 }}
             transition={{ duration: 0.55, ease: "easeOut" }}
           >
-            <div className="feature-mini mini-export">
-              <div className="export-stack">
-                <div />
-                <div />
-                <span>
-                  <FileText size={34} strokeWidth={1.3} />
-                  <small>made with WeMe</small>
-                </span>
-              </div>
-              <div className="export-pill">
-                <Download size={13} /> Ready to take with you
-              </div>
+            <div className="feature-mini editorial-feature-art">
+              <img src="/images/editorial/feature-make.webp" alt="" loading="lazy" decoding="async" />
+              <span className="editorial-feature-tag">
+                <FileText size={14} /> Make something new
+              </span>
             </div>
             <span className="feature-step">03 / MAKE</span>
             <h3>Make it. Then make it yours.</h3>
@@ -539,6 +519,33 @@ export function LandingIntro({
               Make a QR code <ArrowUpRight size={16} />
             </button>
           </motion.article>
+        </div>
+      </section>
+      <section
+        className="studio-human-connection"
+        aria-labelledby="human-connection-title"
+      >
+        <div className="container human-connection-layout">
+          <div className="human-connection-copy">
+            <span className="studio-kicker">HUMAN IDEAS, THOUGHTFUL TECHNOLOGY</span>
+            <h2 id="human-connection-title">
+              Made for your ideas.
+              <br />
+              Not the other way around.
+            </h2>
+            <p>
+              The best tools get out of your way, so you can focus on what
+              matters: making something good.
+            </p>
+          </div>
+          <div className="human-connection-visual" aria-hidden="true">
+            <img
+              src="/images/editorial/human-ai-hands.webp"
+              alt=""
+              loading="lazy"
+              decoding="async"
+            />
+          </div>
         </div>
       </section>
       <section className="studio-tour container" aria-labelledby="tour-title">
@@ -601,6 +608,13 @@ export function LandingIntro({
               </div>
             </div>
           </div>
+          <img
+            className="tour-editorial-detail"
+            src="/images/editorial/workspace-details.webp"
+            alt=""
+            loading="lazy"
+            decoding="async"
+          />
           <div className="tour-sticker">
             <Sparkles size={20} /> Less busywork.
             <br />
@@ -700,6 +714,13 @@ export function LandingOutro({
         aria-labelledby="pass-title"
       >
         <div className="studio-pass-inner container">
+          <img
+            className="pass-editorial-art"
+            src="/images/editorial/open-source-glass.webp"
+            alt=""
+            loading="lazy"
+            decoding="async"
+          />
           <span className="studio-kicker">THE EVERYDAY PASS</span>
           <h2 id="pass-title">Good tools are for everyone.</h2>
           <p>
@@ -869,7 +890,17 @@ export function StudioFooter({
             </a>
           </div>
         </div>
-        <div className="footer-wordmark" aria-hidden="true">
+      </div>
+      <div className="footer-panorama">
+        <img
+          className="footer-panorama-image"
+          src="/images/editorial/footer-panorama.webp"
+          alt=""
+          loading="lazy"
+          decoding="async"
+        />
+        <div className="container footer-panorama-content">
+          <div className="footer-wordmark" aria-hidden="true">
           <span>W</span>
           <span>e</span>
           <span>M</span>
@@ -878,9 +909,10 @@ export function StudioFooter({
             <Sparkles strokeWidth={1.2} />
           </i>
         </div>
-        <div className="studio-footer-bottom">
-          <span>A little less friction. A little more you.</span>
-          <span>© {new Date().getFullYear()} WeMe</span>
+          <div className="studio-footer-bottom">
+            <span>A little less friction. A little more you.</span>
+            <span>© {new Date().getFullYear()} WeMe</span>
+          </div>
         </div>
       </div>
     </footer>
