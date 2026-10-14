@@ -63,8 +63,10 @@ type verifyResponse struct {
 }
 
 func main() {
-	directSMTP := envBool("ENABLE_SMTP", true)
-	proxySMTP := envBool("ENABLE_PROXY_SMTP", false)
+	// Default to the free SOCKS5 pool, matching the Render Free deployment.
+	// Direct outbound port 25 is not available on Render Free.
+	directSMTP := envBool("ENABLE_SMTP", false)
+	proxySMTP := envBool("ENABLE_PROXY_SMTP", true)
 	smtpProxyURL := strings.TrimSpace(os.Getenv("SMTP_PROXY_URL"))
 	baseVerifier := newDomainVerifier()
 
