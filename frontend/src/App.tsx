@@ -1012,22 +1012,32 @@ function AppContent() {
             transition={{ duration: 0.15 }}
           >
             {tool.id === "pdf" ? (
-              <PDFStudio onBack={() => navigate(null)} onRun={() => setRecent((previous) => ["pdf", ...previous.filter((id) => id !== "pdf")].slice(0,8))}/>
+              <PDFStudio
+                onBack={() => navigate(null)}
+                onRun={() =>
+                  setRecent((previous) =>
+                    ["pdf", ...previous.filter((id) => id !== "pdf")].slice(
+                      0,
+                      8,
+                    ),
+                  )
+                }
+              />
             ) : (
-            <ToolWorkspace
-              tool={tool}
-              favorite={favorites.includes(tool.id)}
-              onFavorite={() => favorite(tool.id)}
-              onBack={() => navigate(null)}
-              onRun={() =>
-                setRecent((previous) =>
-                  [tool.id, ...previous.filter((id) => id !== tool.id)].slice(
-                    0,
-                    8,
-                  ),
-                )
-              }
-            />
+              <ToolWorkspace
+                tool={tool}
+                favorite={favorites.includes(tool.id)}
+                onFavorite={() => favorite(tool.id)}
+                onBack={() => navigate(null)}
+                onRun={() =>
+                  setRecent((previous) =>
+                    [tool.id, ...previous.filter((id) => id !== tool.id)].slice(
+                      0,
+                      8,
+                    ),
+                  )
+                }
+              />
             )}
           </motion.div>
         ) : route === "not-found" ? (

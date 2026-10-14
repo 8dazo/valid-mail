@@ -11,7 +11,7 @@
 ![WeMe landing page with a pixelated turquoise coastline, centered headline, and toolkit navigation](docs/images/landing.png)
 
 <!-- generated:overview:start -->
-**39 utilities · 37 run in your browser · 2 use the Go API**
+**40 utilities · 37 run in your browser · 3 use the Go API**
 
 WeMe is a calm place to validate, convert, and create. It brings practical open-source tools into consistent workspaces, with a coastal landing page, pastel studio cards, illustrated shortcuts, self-hosted fonts, and a React + TypeScript interface.
 <!-- generated:overview:end -->
@@ -52,6 +52,7 @@ WeMe is a calm place to validate, convert, and create. It brings practical open-
 | Generators | QR code generator · Password generator · UUID & Nano ID · Barcode generator · ULID generator & inspector |
 | Developer | JSON formatter · JWT decoder · Cron explainer · Hash generator · Regex tester · HTML minifier · CSS minifier · JavaScript minifier · SVG minifier · Bcrypt hash & verify · Cron schedule planner · HMAC generator · Unix permissions calculator |
 | Text | Markdown & README preview · Text compare · Text case converter · Text analyzer |
+| Documents | PDF editor & signer |
 
 37 tools execute locally. Email validation and work-email discovery call the same-origin API.
 <!-- generated:tools:end -->

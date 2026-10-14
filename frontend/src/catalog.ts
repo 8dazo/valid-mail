@@ -1,7 +1,12 @@
 import { certificateExample } from "./certificate-example.ts";
 
 export type Category =
-  "Validation" | "Conversion" | "Generators" | "Developer" | "Text" | "Documents";
+  | "Validation"
+  | "Conversion"
+  | "Generators"
+  | "Developer"
+  | "Text"
+  | "Documents";
 export type Field = {
   key: string;
   label: string;
@@ -54,7 +59,8 @@ export const tools: Tool[] = [
   {
     id: "pdf",
     name: "PDF editor & signer",
-    description: "Edit existing PDF text, format, annotate, sign, merge, redact, and organize pages.",
+    description:
+      "Edit existing PDF text, format, annotate, sign, merge, redact, and organize pages.",
     category: "Documents",
     icon: "FilePenLine",
     color: "purple",
