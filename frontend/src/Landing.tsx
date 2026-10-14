@@ -457,17 +457,21 @@ export function LandingIntro({
             viewport={{ once: true, amount: 0.15 }}
             transition={{ duration: 0.55, ease: "easeOut" }}
           >
-            <div className="feature-mini">
-              <span>
+            <div className="feature-mini editorial-feature-stage">
+              <span className="editorial-feature-label">
                 <MailCheck size={14} /> Email check
               </span>
-              <div className="mini-input">
-                hello@yourcompany.com
-                <Check size={15} />
-              </div>
-              <div className="mini-evidence">
-                <ShieldMark /> Address &amp; domain checks
-              </div>
+              <img
+                className="editorial-feature-art"
+                src="/images/editorial/feature-check.webp"
+                alt=""
+                loading="lazy"
+                width={780}
+                height={585}
+              />
+              <span className="editorial-feature-pill">
+                <Check size={13} /> Address &amp; domain checks
+              </span>
             </div>
             <span className="feature-step">01 / CHECK</span>
             <h3>A little more certainty.</h3>
@@ -486,18 +490,21 @@ export function LandingIntro({
             viewport={{ once: true, amount: 0.15 }}
             transition={{ duration: 0.55, ease: "easeOut" }}
           >
-            <div className="feature-mini mini-code">
-              <span>
+            <div className="feature-mini editorial-feature-stage">
+              <span className="editorial-feature-label">
                 <Braces size={14} /> JSON formatter
               </span>
-              <pre>
-                {'{\n  "a_little": "less mess",\n  "a_lot": "more clarity"\n}'}
-              </pre>
-              <div className="mini-tools">
-                <Copy size={14} />
-                <span>Clean. Readable. Ready.</span>
-                <Download size={14} />
-              </div>
+              <img
+                className="editorial-feature-art"
+                src="/images/editorial/feature-tidy.webp"
+                alt=""
+                loading="lazy"
+                width={780}
+                height={585}
+              />
+              <span className="editorial-feature-pill">
+                <Check size={13} /> Clean. Readable. Ready.
+              </span>
             </div>
             <span className="feature-step">02 / TIDY</span>
             <h3>Give the mess some shape.</h3>
@@ -516,18 +523,21 @@ export function LandingIntro({
             viewport={{ once: true, amount: 0.15 }}
             transition={{ duration: 0.55, ease: "easeOut" }}
           >
-            <div className="feature-mini mini-export">
-              <div className="export-stack">
-                <div />
-                <div />
-                <span>
-                  <FileText size={34} strokeWidth={1.3} />
-                  <small>made with WeMe</small>
-                </span>
-              </div>
-              <div className="export-pill">
+            <div className="feature-mini editorial-feature-stage">
+              <span className="editorial-feature-label">
+                <FileText size={14} /> Make something
+              </span>
+              <img
+                className="editorial-feature-art"
+                src="/images/editorial/feature-make.webp"
+                alt=""
+                loading="lazy"
+                width={780}
+                height={585}
+              />
+              <span className="editorial-feature-pill">
                 <Download size={13} /> Ready to take with you
-              </div>
+              </span>
             </div>
             <span className="feature-step">03 / MAKE</span>
             <h3>Make it. Then make it yours.</h3>
@@ -540,6 +550,29 @@ export function LandingIntro({
             </button>
           </motion.article>
         </div>
+      </section>
+      <section
+        className="editorial-human container"
+        aria-labelledby="human-title"
+      >
+        <div className="editorial-human-copy">
+          <span className="studio-kicker">A LITTLE TECHNOLOGY. A LOT MORE YOU.</span>
+          <h2 id="human-title">
+            Tools that make room for <em>your imagination.</em>
+          </h2>
+          <p>
+            From the first thought to the finishing touch, WeMe keeps the small
+            things simple so you can focus on what matters.
+          </p>
+        </div>
+        <img
+          src="/images/editorial/human-ai-hands.webp"
+          alt=""
+          className="editorial-human-hands"
+          loading="lazy"
+          width={1500}
+          height={844}
+        />
       </section>
       <section className="studio-tour container" aria-labelledby="tour-title">
         <span className="studio-kicker">A SMALL WORKSPACE. A BIG EXHALE.</span>
@@ -601,6 +634,14 @@ export function LandingIntro({
               </div>
             </div>
           </div>
+          <img
+            className="editorial-tour-detail"
+            src="/images/editorial/workspace-details.webp"
+            alt=""
+            loading="lazy"
+            width={700}
+            height={525}
+          />
           <div className="tour-sticker">
             <Sparkles size={20} /> Less busywork.
             <br />
@@ -706,6 +747,14 @@ export function LandingOutro({
             No subscriptions. No sign-up. Just a little help when you need it.
           </p>
           <div className="pass-card">
+            <img
+              className="editorial-pass-art"
+              src="/images/editorial/open-source-glass.webp"
+              alt=""
+              loading="lazy"
+              width={780}
+              height={585}
+            />
             <div className="pass-card-paper">
               <span className="pass-spark">
                 <Sparkles size={19} /> WeMe, all yours
@@ -835,6 +884,7 @@ export function StudioFooter({
             <button onClick={() => onOpen("email")}>Email verifier</button>
             <button onClick={() => onOpen("json")}>JSON formatter</button>
             <button onClick={() => onOpen("markdown")}>README preview</button>
+            <button onClick={() => onOpen("pdf")}>PDF Studio</button>
           </div>
           <div>
             <h3>Around here</h3>
@@ -869,7 +919,16 @@ export function StudioFooter({
             </a>
           </div>
         </div>
-        <div className="footer-wordmark" aria-hidden="true">
+        <div className="editorial-footer-panorama">
+          <img
+            className="editorial-footer-photo"
+            src="/images/editorial/footer-panorama.webp"
+            alt=""
+            loading="lazy"
+            width={2172}
+            height={724}
+          />
+          <div className="footer-wordmark" aria-hidden="true">
           <span>W</span>
           <span>e</span>
           <span>M</span>
@@ -877,6 +936,10 @@ export function StudioFooter({
           <i>
             <Sparkles strokeWidth={1.2} />
           </i>
+          </div>
+          <span className="editorial-footer-landscape-note">
+            Less friction. More creating.
+          </span>
         </div>
         <div className="studio-footer-bottom">
           <span>A little less friction. A little more you.</span>
