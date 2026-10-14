@@ -819,7 +819,7 @@ export function LandingOutro({
             },
             {
               q: "Does my data leave my browser?",
-              a: `The ${localCount} local tools run in your browser. Email verification and company-email discovery send the details needed for their checks to the Go server. Your inputs aren’t saved in browser storage.`,
+              a: `The ${localCount} local tools run in your browser. Email verification, company-email discovery, and PDF Studio send inputs to the Go server for processing. Local tools run without uploading data. Your inputs aren’t saved in browser storage.`,
             },
             {
               q: "How do I get started?",
