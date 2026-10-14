@@ -16,6 +16,15 @@ For a Blueprint-managed service, sync the updated `render.yaml`. For a manually 
 | Health check path | `/healthz` |
 | `GO_VERSION` | `1.27.2` |
 | `NODE_VERSION` | `24.19.0` |
+| `ENABLE_SMTP` | `false` — don't attempt blocked direct port 25 |
+| `ENABLE_PROXY_SMTP` | `true` — enable the rotating free SOCKS5 pool |
+| `SMTP_MAX_ATTEMPTS` | `3` — independent proxy attempts per request |
+| `SMTP_NEGATIVE_CONSENSUS` | `2` — explicit missing-recipient replies before marking invalid |
+| `PROXY_MAX_CANDIDATES` | `120` |
+| `PROXY_MAX_HEALTHY` | `5` |
+| `PROXY_PROBE_CONCURRENCY` | `30` |
+| `PROXY_PROBE_TIMEOUT` | `3s` |
+| `PROXY_REFRESH_INTERVAL` | `5m` |
 
 Redeploy the latest commit after applying the settings. A Git push does not update the build/start commands of a manually configured service. Render supplies `PORT`; the application binds to all interfaces on that port.
 
@@ -38,4 +47,15 @@ Request `/healthz`, `/`, `/tools/email`, and `/api/verify` with an invalid email
 
 On 13 October 2026, the old build failed from a Git archive without generated files. The corrected script completed from that same clean checkout. Its binary passed startup with `PORT=10000`, health, embedded frontend/assets, tool deep links, image/logo requests, invalid-email API handling, and graceful SIGTERM shutdown. These are local build/runtime checks; Render dashboard logs and a hosted redeployment were unavailable for verification.
 
-The Blueprint enables bounded direct SMTP checks and keeps the public proxy pool optional. Render Free does not provide direct outbound SMTP, so enabling the flag cannot establish a working connection on that plan. Configure a stable private `SMTP_PROXY_URL` securely for mailbox probing, or use hosting with supported SMTP egress. An unavailable SMTP route should leave mailbox existence unconfirmed, independently of service deployment health.
+## Free SMTP proxy routing (restored)
+
+The Blueprint **disables direct SMTP** and enables the earlier free ProxyScrape SOCKS5 pool. On startup (and every five minutes) the Go service fetches candidate proxies, then tests each against real MX servers on port 25, retaining at most five that deliver a valid SMTP `220` greeting. A mailbox request tries up to three independent healthy routes. A recipient-missing reply needs confirmation from two routes before the API can label the mailbox invalid. Connection timeouts, policy rejection, a lack of proxies, and inconclusive results all return **unknown** rather than falsely marking mailboxes invalid.
+
+```bash
+# Verify the running instance's effective settings and proxy health.
+curl -fsS https://YOUR-RENDER-SERVICE.onrender.com/healthz
+# Expected: "direct_smtp":false, "proxy_smtp_enabled":true,
+# and (after warm-up) a "proxy_pool" with its "healthy" count.
+```
+
+For **manually configured** Render services, updating `render.yaml` alone does not alter Dashboard environment variables: set `ENABLE_SMTP=false` and `ENABLE_PROXY_SMTP=true` on the **existing** `valid-mail` service, then redeploy. Blueprint-managed services need a Blueprint sync. A deployment can be healthy with `proxy_pool.healthy=0` if no free proxy currently supports SMTP. Public proxies are unreliable and untrusted: never transmit passwords, session tokens, SMTP AUTH, or message bodies through them; this tool performs only unauthenticated SMTP recipient probes. The more dependable production alternative is a trusted private `SMTP_PROXY_URL` or hosting with permitted port-25 egress.
