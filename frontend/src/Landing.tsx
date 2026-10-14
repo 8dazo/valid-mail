@@ -25,19 +25,44 @@ function ToolkitArt({ kind }: { kind: "check" | "tidy" | "make" }) {
   }[kind];
 
   return (
-    <div className={`toolkit-art-scene toolkit-art-scene--${kind}`} aria-hidden="true">
+    <div
+      className={`toolkit-art-scene toolkit-art-scene--${kind}`}
+      aria-hidden="true"
+    >
       <svg className="toolkit-orbit" viewBox="0 0 320 210" fill="none">
-        <ellipse cx="158" cy="110" rx="126" ry="69" stroke="#B6A0CD" strokeWidth="1.5" strokeDasharray="4 8" opacity=".63" />
+        <ellipse
+          cx="158"
+          cy="110"
+          rx="126"
+          ry="69"
+          stroke="#B6A0CD"
+          strokeWidth="1.5"
+          strokeDasharray="4 8"
+          opacity=".63"
+        />
         <path d="M47 47l4 11 11 4-11 4-4 11-4-11-11-4 11-4z" fill="#AD91CF" />
         <circle cx="276" cy="75" r="7" fill="#B7DCC8" />
         <circle cx="73" cy="162" r="5" fill="#E7B8CB" />
         <path d="M270 138l6 13 13 6-13 6-6 13-6-13-13-6 13-6z" fill="#DFC6F4" />
         {kind === "check" ? (
-          <path d="m258 32 7 7 14-15" stroke="#7FBA92" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            d="m258 32 7 7 14-15"
+            stroke="#7FBA92"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         ) : kind === "tidy" ? (
-          <path d="M247 34h28M247 41h19M247 48h24" stroke="#9E82BF" strokeWidth="3" strokeLinecap="round" />
+          <path
+            d="M247 34h28M247 41h19M247 48h24"
+            stroke="#9E82BF"
+            strokeWidth="3"
+            strokeLinecap="round"
+          />
         ) : (
-          <g stroke="#B593D9" strokeWidth="2"><path d="M259 28v20m-10-10h20M77 20v12m-6-6h12" /></g>
+          <g stroke="#B593D9" strokeWidth="2">
+            <path d="M259 28v20m-10-10h20M77 20v12m-6-6h12" />
+          </g>
         )}
       </svg>
       <img src={art} alt="" loading="lazy" decoding="async" />
@@ -382,7 +407,9 @@ export function LandingIntro({
         aria-labelledby="human-connection-title"
       >
         <div className="human-connection-copy container">
-          <span className="studio-kicker">HUMAN IDEAS, THOUGHTFUL TECHNOLOGY</span>
+          <span className="studio-kicker">
+            HUMAN IDEAS, THOUGHTFUL TECHNOLOGY
+          </span>
           <h2 id="human-connection-title">
             Made for your ideas.
             <br />
@@ -462,10 +489,35 @@ export function LandingIntro({
               </div>
             </div>
           </div>
-          <svg className="tour-editorial-symbol" viewBox="0 0 112 112" aria-hidden="true">
-            <circle cx="56" cy="56" r="45" fill="#FAF5FF" stroke="#CBB7E4" strokeWidth="1.5" />
-            <circle cx="56" cy="56" r="33" fill="none" stroke="#D4C5E7" strokeWidth="1.3" strokeDasharray="3 5" />
-            <path d="M43 42c-7 0-7 7-7 13s-3 8-7 8c4 0 7 2 7 8s0 13 7 13m26-42c7 0 7 7 7 13s3 8 7 8c-4 0-7 2-7 8s0 13-7 13" fill="none" stroke="#8F6AB8" strokeWidth="4.2" strokeLinecap="round" />
+          <svg
+            className="tour-editorial-symbol"
+            viewBox="0 0 112 112"
+            aria-hidden="true"
+          >
+            <circle
+              cx="56"
+              cy="56"
+              r="45"
+              fill="#FAF5FF"
+              stroke="#CBB7E4"
+              strokeWidth="1.5"
+            />
+            <circle
+              cx="56"
+              cy="56"
+              r="33"
+              fill="none"
+              stroke="#D4C5E7"
+              strokeWidth="1.3"
+              strokeDasharray="3 5"
+            />
+            <path
+              d="M43 42c-7 0-7 7-7 13s-3 8-7 8c4 0 7 2 7 8s0 13 7 13m26-42c7 0 7 7 7 13s3 8 7 8c-4 0-7 2-7 8s0 13-7 13"
+              fill="none"
+              stroke="#8F6AB8"
+              strokeWidth="4.2"
+              strokeLinecap="round"
+            />
             <path d="m57 22 3 7 7 3-7 3-3 7-3-7-7-3 7-3z" fill="#AF96CF" />
           </svg>
           <div className="tour-sticker">
@@ -573,24 +625,61 @@ export function LandingOutro({
             Just a little help when you need it.
           </p>
           <div className="pass-card-stage">
-            <div className="pass-card-spark pass-card-spark--one" aria-hidden="true"><Sparkles size={23} /></div>
-            <div className="pass-card-spark pass-card-spark--two" aria-hidden="true"><Sparkles size={16} /></div>
+            <div
+              className="pass-card-spark pass-card-spark--one"
+              aria-hidden="true"
+            >
+              <Sparkles size={23} />
+            </div>
+            <div
+              className="pass-card-spark pass-card-spark--two"
+              aria-hidden="true"
+            >
+              <Sparkles size={16} />
+            </div>
             <div className="pass-card">
               <div className="pass-card-paper">
-                <span className="pass-spark"><Sparkles size={17} /> WeMe, all yours</span>
+                <span className="pass-spark">
+                  <Sparkles size={17} /> WeMe, all yours
+                </span>
                 <div className="pass-plan-head">
-                  <span className="pass-plan-label">ONE PLAN. ALL YOUR TOOLS.</span>
+                  <span className="pass-plan-label">
+                    ONE PLAN. ALL YOUR TOOLS.
+                  </span>
                   <strong>Free</strong>
                   <span className="pass-plan-period">₹0 · forever</span>
                 </div>
                 <div className="pass-plan-divider" />
                 <ul>
-                  <li><span className="pass-feature-icon"><Check size={14} /></span> All {count} tools in one collection</li>
-                  <li><span className="pass-feature-icon"><Check size={14} /></span> Examples to get you started</li>
-                  <li><span className="pass-feature-icon"><Check size={14} /></span> Copy and download your results</li>
-                  <li><span className="pass-feature-icon"><Check size={14} /></span> Open-source foundations</li>
+                  <li>
+                    <span className="pass-feature-icon">
+                      <Check size={14} />
+                    </span>{" "}
+                    All {count} tools in one collection
+                  </li>
+                  <li>
+                    <span className="pass-feature-icon">
+                      <Check size={14} />
+                    </span>{" "}
+                    Examples to get you started
+                  </li>
+                  <li>
+                    <span className="pass-feature-icon">
+                      <Check size={14} />
+                    </span>{" "}
+                    Copy and download your results
+                  </li>
+                  <li>
+                    <span className="pass-feature-icon">
+                      <Check size={14} />
+                    </span>{" "}
+                    Open-source foundations
+                  </li>
                 </ul>
-                <button className="button studio-button pass-primary-action" onClick={() => onSection("tools")}>
+                <button
+                  className="button studio-button pass-primary-action"
+                  onClick={() => onSection("tools")}
+                >
                   Find your next shortcut <ArrowRight size={17} />
                 </button>
               </div>
