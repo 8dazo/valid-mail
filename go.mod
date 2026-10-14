@@ -7,6 +7,7 @@ toolchain go1.27.2
 require (
 	github.com/AfterShip/email-verifier v1.5.0
 	github.com/JohannesKaufmann/html-to-markdown/v2 v2.5.2
+	github.com/SalvioniDigitalSolutions/gopdf v0.0.0-20260922202729-55a8f5fed5f5
 	github.com/boombuler/barcode v1.1.0
 	github.com/clbanning/mxj/v2 v2.7.0
 	github.com/dlclark/regexp2 v1.12.0
