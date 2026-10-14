@@ -172,6 +172,47 @@ func TestProxyColdStartRunsInsideRequest(t *testing.T) {
 	}
 }
 
+func TestFreeProxyRoutingWithoutDirectFallback(t *testing.T) {
+	// Prime the pool without contacting external proxy-list services.
+	pool := &proxyPool{
+		refreshGate:  make(chan struct{}, 1),
+		refreshCh:    make(chan struct{}, 1),
+		healthy:      []string{"socks5://proxy.example:1080"},
+		lastRefresh:  time.Now(),
+		refreshEvery: time.Hour,
+	}
+	app := &application{
+		directSMTP: false,
+		proxySMTP: true,
+		proxyPool: pool,
+		maxSMTPAttempts: 3,
+		negativeConsensus: 2,
+		smtpTotalTimeout: 2 * time.Second,
+	}
+	calls := 0
+	app.smtpProbe = func(_ context.Context, _ string, route string) singleSMTPProbe {
+		calls++
+		if route != "socks5://proxy.example:1080" {
+			t.Fatalf("expected free proxy only, got route %q", route)
+		}
+		notCatchAll := false
+		return singleSMTPProbe{connected: true, catchAll: &notCatchAll, target: smtpReply{Code: 250, Category: "accepted"}}
+	}
+	a, attempted, viaProxy := app.assessReachability(context.Background(), "mailbox@example.org")
+	if calls != 1 || !attempted || !viaProxy || a.Status != "valid" || a.Attempts != 1 {
+		t.Fatalf("proxy verification not used: %+v (attempted=%t, viaProxy=%t, calls=%d)", a, attempted, viaProxy, calls)
+	}
+
+	// With no healthy free proxy, NEVER silently use direct port 25.
+	pool.mu.Lock()
+	pool.healthy = nil
+	pool.mu.Unlock()
+	a, attempted, viaProxy = app.assessReachability(context.Background(), "mailbox@example.org")
+	if attempted || viaProxy || a.Status != "unknown" || a.Reason != "no_healthy_proxy" || calls != 1 {
+		t.Fatalf("empty proxy pool must remain inconclusive, got %+v", a)
+	}
+}
+
 func TestConfiguredPrivateSMTPRoute(t *testing.T) {
 	app := &application{smtpProxyURL: "socks5://private.fixture:1080", smtpTotalTimeout: time.Second}
 	app.smtpProbe = func(_ context.Context, _ string, route string) singleSMTPProbe {

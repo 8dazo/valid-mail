@@ -158,10 +158,10 @@ GitHub Actions runs the production build, unit tests, audits, race tests, browse
 | --- | --- | --- |
 | `PORT` | `8080` | Internal HTTP port |
 | `VERIFY_MAX_CONCURRENCY` | `8` | Concurrent email checks |
-| `ENABLE_SMTP` | `true` | Direct SMTP, requiring outbound port 25; enabled in the Render Blueprint; runtime egress must support it |
+| `ENABLE_SMTP` | `false` | Direct SMTP is off on Render Free (outbound port 25 unavailable); enable only where egress is supported |
 | `SMTP_PROXY_URL` | empty | Private SOCKS5 route; store credentials securely |
 | `SMTP_TOTAL_TIMEOUT` | `25s` | Total mailbox-check budget |
-| `ENABLE_PROXY_SMTP` | `false` | Optional public SOCKS5 pool |
+| `ENABLE_PROXY_SMTP` | `true` | Free SMTP-tested SOCKS5 proxy pool restored, with bounded retries; availability is not guaranteed |
 | `AUTO_UPDATE_DISPOSABLE` | `false` | Optional disposable-domain list updates |
 | `TRUST_PROXY` | `false` | Trust client-IP headers only behind a proxy that overwrites them |
 

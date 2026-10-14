@@ -180,9 +180,9 @@ The public-web finder does **not** use these proxies. Web discovery intentionall
 | Variable | Default | Description |
 | --- | --- | --- |
 | `PORT` | `8080` | HTTP port; Render injects this. |
-| `ENABLE_SMTP` | `true` | Enable direct SMTP (requires outbound port 25). |
+| `ENABLE_SMTP` | `false` | Direct SMTP is disabled by default because Render Free blocks port 25. Enable explicitly only on hosting that permits it. |
 | `SMTP_PROXY_URL` | empty | Optional stable private SOCKS5 URI. Configure securely; this route takes priority over public proxies and direct SMTP. |
-| `ENABLE_PROXY_SMTP` | `false` | Optional SMTP through the rotating SOCKS5 pool; enable explicitly. |
+| `ENABLE_PROXY_SMTP` | `true` | Restore the rotating free SOCKS5 pool; healthy proxies only, with bounded refreshes and attempts. |
 | `SMTP_FROM_EMAIL` | empty | Null envelope sender by default; configure a sender on a domain you control for better server acceptance. |
 | `SMTP_HELLO_NAME` | empty | Hostname used for `EHLO`/`HELO`; use a domain you control. |
 | `SMTP_CONNECT_TIMEOUT` | `7s` | SMTP connect timeout. |
@@ -193,7 +193,7 @@ The public-web finder does **not** use these proxies. Web discovery intentionall
 | `SMTP_NEGATIVE_CONSENSUS` | `2` | Independent recipient-missing replies required before marking invalid via public proxies. |
 | `SMTP_MAX_CONCURRENCY` | `4` | Maximum simultaneous mailbox probes. |
 | `PROXY_SOURCE_URL` | ProxyScrape free SOCKS5 API | Source for proxy candidates. |
-| `PROXY_MAX_CANDIDATES` | `40` | Candidates tested each refresh (Render currently overrides this higher). |
+| `PROXY_MAX_CANDIDATES` | `40` | Candidates tested each refresh (the Render Blueprint overrides this to `120`). |
 | `PROXY_MAX_HEALTHY` | `8` | Maximum healthy proxies retained. |
 | `PROXY_PROBE_CONCURRENCY` | `12` | Concurrent health probes. |
 | `PROXY_PROBE_TIMEOUT` | `4s` | Per-proxy SMTP health timeout. |
@@ -214,7 +214,7 @@ The service pins `github.com/AfterShip/email-verifier` v1.5.0 or newer compatibl
 
 ## WeMe integration
 
-The current interface and production build are documented in the root [README](../README.md). Build the TypeScript frontend before compiling Go. SMTP now defaults to disabled, and DNS transport failures are reported as inconclusive rather than invalid. The JSON APIs and separate SMTP assessment remain available.
+The current interface and production build are documented in the root [README](../README.md). Build the TypeScript frontend before compiling Go. **Direct SMTP defaults to disabled**, while free SOCKS5 proxy checks default to enabled. DNS transport failures are reported as inconclusive rather than invalid. The JSON APIs and separate SMTP assessment remain available.
 
 Public proxy availability and recipient acceptance are outside the application’s control. A stable SOCKS5 route that permits mail-server port 25 can be configured as the `SMTP_PROXY_URL` secret. Credentials are never returned in results. SMTP sends no message body; it only negotiates the connection and recipient commands. Unknown results have no measured confidence in the UI.
 

@@ -13,9 +13,25 @@ services:
         value: "1.27.2"
       - key: NODE_VERSION
         value: "24.19.0"
+      # Render Free cannot dial MX servers directly on outbound port 25.
+      # Restore the bounded, SMTP-tested public SOCKS5 proxy pool.
       - key: ENABLE_SMTP
-        value: "true"
-      - key: ENABLE_PROXY_SMTP
         value: "false"
+      - key: ENABLE_PROXY_SMTP
+        value: "true"
+      - key: SMTP_MAX_ATTEMPTS
+        value: "3"
+      - key: SMTP_NEGATIVE_CONSENSUS
+        value: "2"
+      - key: PROXY_MAX_CANDIDATES
+        value: "120"
+      - key: PROXY_MAX_HEALTHY
+        value: "5"
+      - key: PROXY_PROBE_CONCURRENCY
+        value: "30"
+      - key: PROXY_PROBE_TIMEOUT
+        value: "3s"
+      - key: PROXY_REFRESH_INTERVAL
+        value: "5m"
       - key: AUTO_UPDATE_DISPOSABLE
         value: "false"
