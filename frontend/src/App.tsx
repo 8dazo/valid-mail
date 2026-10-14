@@ -32,6 +32,7 @@ import {
   Fingerprint,
   CalendarClock,
   FileText,
+  FilePenLine,
   GitCompareArrows,
   ScanLine,
   Hash,
@@ -50,6 +51,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { categories, initialValues, tools } from "./catalog";
+import PDFStudio from "./PDFStudio";
 import type { Category, Tool } from "./catalog";
 import { readList, saveList, storageKeys } from "./storage";
 import type { ToolResult } from "./toolkit";
@@ -83,6 +85,7 @@ const iconMap: Record<string, LucideIcon> = {
   Fingerprint,
   CalendarClock,
   FileText,
+  FilePenLine,
   GitCompareArrows,
   ScanLine,
   Hash,
@@ -1008,6 +1011,9 @@ function AppContent() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
           >
+            tool.id === "pdf" ? (
+              <PDFStudio onBack={() => navigate(null)} onRun={() => setRecent((previous) => ["pdf", ...previous.filter((id) => id !== "pdf")].slice(0,8))}/>
+            ) : (
             <ToolWorkspace
               tool={tool}
               favorite={favorites.includes(tool.id)}
@@ -1022,6 +1028,7 @@ function AppContent() {
                 )
               }
             />
+            )}
           </motion.div>
         ) : route === "not-found" ? (
           <main id="main-content" className="not-found container">
