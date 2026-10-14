@@ -424,6 +424,13 @@ export default function PDFStudio({
           onDrop={onDrop}
           onDragOver={(event) => event.preventDefault()}
         >
+          <img
+            className="pdf-empty-editorial"
+            src="/images/editorial/feature-tidy.webp"
+            alt=""
+            loading="lazy"
+            decoding="async"
+          />
           <input
             ref={upload}
             type="file"

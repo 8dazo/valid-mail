@@ -1,0 +1,430 @@
+/* WeMe editorial art direction — approved Mediterranean imagery,
+   transparent card illustrations, native HTML copy and controls. */
+
+.studio-feature .feature-mini.editorial-feature-art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 9px;
+  isolation: isolate;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.editorial-feature-art > img {
+  display: block;
+  width: 100%;
+  height: 202px;
+  object-fit: contain;
+  object-position: center;
+  transition: transform 450ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  pointer-events: none;
+}
+
+.studio-feature:hover .editorial-feature-art > img,
+.studio-feature:focus-within .editorial-feature-art > img {
+  transform: translateY(-7px) rotate(-2deg) scale(1.045);
+}
+
+.editorial-feature-tag {
+  position: absolute;
+  z-index: 2;
+  bottom: 12px;
+  left: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 11px;
+  max-width: calc(100% - 24px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 999px;
+  background: rgba(255, 253, 250, 0.92);
+  box-shadow: 0 5px 15px rgba(79, 57, 79, 0.08);
+  color: #514a53;
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.2;
+  backdrop-filter: blur(8px);
+}
+
+/* A single human/technology art moment: the hands stay image-only,
+   while headline and description remain selectable real text. */
+.studio-human-connection {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: clamp(46px, 6vw, 88px) 0;
+  border-block: 1px solid #ebe8e9;
+  background: linear-gradient(120deg, #fcf9f4 4%, #f6f2f7 55%, #edf2f2);
+}
+
+.human-connection-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.95fr) minmax(0, 1.3fr);
+  align-items: center;
+  gap: clamp(15px, 4vw, 70px);
+}
+
+.human-connection-copy {
+  position: relative;
+  z-index: 2;
+}
+
+.human-connection-copy h2 {
+  margin: 18px 0 22px;
+  font-size: clamp(32px, 3.7vw, 56px);
+  line-height: 1.06;
+  letter-spacing: -0.055em;
+  color: #383243;
+}
+
+.human-connection-copy p {
+  max-width: 405px;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.8;
+  color: #736a79;
+}
+
+.human-connection-visual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: clamp(240px, 25vw, 400px);
+}
+
+.human-connection-visual img {
+  display: block;
+  width: min(100%, 850px);
+  height: auto;
+  filter: drop-shadow(0 13px 22px rgba(97, 82, 111, 0.07));
+  animation: wemeEditorialFloat 7.5s ease-in-out infinite;
+}
+
+/* A genuine product view stays central; small objects decorate the frame. */
+.studio-tour .tour-frame {
+  position: relative;
+  isolation: isolate;
+}
+
+.tour-editorial-detail {
+  position: absolute;
+  z-index: 2;
+  right: max(-60px, -5%);
+  bottom: -47px;
+  width: clamp(105px, 15vw, 190px);
+  max-width: 27%;
+  height: auto;
+  pointer-events: none;
+  filter: drop-shadow(0 12px 14px rgba(78, 65, 86, 0.14));
+  transform: rotate(8deg);
+  transition: transform 350ms ease-out;
+}
+
+.studio-tour .tour-frame:hover .tour-editorial-detail {
+  transform: rotate(3deg) translateY(-7px);
+}
+
+.studio-tour .tour-sticker {
+  z-index: 3;
+}
+
+/* Discovery artwork lives by the heading, never behind working tool cards. */
+.tool-directory .section-heading {
+  position: relative;
+}
+
+.directory-editorial-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 5px;
+  flex-shrink: 0;
+  min-width: 130px;
+}
+
+.directory-editorial-art {
+  display: block;
+  width: clamp(108px, 13vw, 175px);
+  height: auto;
+  max-height: 142px;
+  object-fit: contain;
+  pointer-events: none;
+  transform: rotate(3deg);
+  transition: transform 450ms ease-out;
+}
+
+.directory-editorial-side:hover .directory-editorial-art {
+  transform: rotate(-3deg) translateY(-5px);
+}
+
+.directory-editorial-side .tool-count {
+  align-self: flex-end;
+  white-space: nowrap;
+}
+
+/* "Free" is still a real HTML card. Glass art sits to its right. */
+.studio-pass-inner {
+  position: relative;
+  isolation: isolate;
+}
+
+.pass-editorial-art {
+  position: absolute;
+  top: 19%;
+  right: clamp(-115px, -3vw, -15px);
+  z-index: 0;
+  width: clamp(220px, 29vw, 420px);
+  height: auto;
+  max-width: 46%;
+  pointer-events: none;
+  opacity: 0.96;
+  transform: rotate(7deg);
+  filter: drop-shadow(0 15px 20px rgba(80, 67, 104, 0.09));
+}
+
+.studio-pass-inner > :not(.pass-editorial-art) {
+  position: relative;
+  z-index: 1;
+}
+
+/* Footer is now a broad photographic panorama with a *live* oversized
+   brand wordmark, and the link/navigation section above the image. */
+.studio-footer {
+  padding: 0 !important;
+  border-top: 1px solid #eee7df;
+  background: #f7f3ec;
+}
+
+.studio-footer > .container {
+  padding-top: clamp(45px, 6vw, 90px);
+  padding-bottom: clamp(30px, 4vw, 64px);
+}
+
+.studio-footer-top {
+  gap: clamp(24px, 3vw, 60px);
+}
+
+.footer-panorama {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  width: 100%;
+  min-height: clamp(335px, 35vw, 620px);
+  background: #a0c3cc;
+}
+
+.footer-panorama-image {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 54%;
+  pointer-events: none;
+}
+
+.footer-panorama::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(27, 44, 60, 0.01) 20%,
+    rgba(35, 47, 53, 0.01) 45%,
+    rgba(30, 50, 55, 0.39) 100%
+  );
+  pointer-events: none;
+}
+
+.footer-panorama-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: clamp(335px, 35vw, 620px);
+  padding-top: 50px;
+}
+
+.footer-panorama .footer-wordmark {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  overflow: visible;
+  margin: 0;
+  padding: 0;
+  font-size: clamp(106px, 23vw, 350px);
+  line-height: 0.86;
+  letter-spacing: -0.085em;
+  color: #fff7ef;
+  text-shadow: 0 3px 20px rgba(13, 37, 40, 0.15);
+}
+
+.footer-panorama .footer-wordmark span,
+.footer-panorama .footer-wordmark span:nth-child(2),
+.footer-panorama .footer-wordmark span:nth-child(3),
+.footer-panorama .footer-wordmark span:nth-child(4) {
+  color: #fff7ef;
+  text-shadow: 0 3px 18px rgba(18, 41, 47, 0.16);
+}
+
+.footer-panorama .footer-wordmark i {
+  color: #fff7ef;
+  font-size: 0.24em;
+  margin: 0 0 0.4em 0.19em;
+}
+
+.footer-panorama .studio-footer-bottom {
+  border-top: 1px solid rgba(255, 253, 247, 0.5);
+  color: #fff9f2;
+  margin-top: 30px;
+  padding: 17px 0 22px;
+  text-shadow: 0 1px 8px rgba(29, 49, 52, 0.28);
+  font-size: 11px;
+}
+
+/* PDF Studio gets one quiet empty-state image; the actual PDF always
+   takes precedence after upload. */
+.pdf-drop {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.pdf-drop > :not(.pdf-empty-editorial) {
+  position: relative;
+  z-index: 1;
+}
+
+.pdf-empty-editorial {
+  position: absolute;
+  z-index: 0;
+  right: -35px;
+  bottom: -65px;
+  width: min(38%, 350px);
+  height: auto;
+  opacity: 0.57;
+  pointer-events: none;
+  transform: rotate(-11deg);
+}
+
+@keyframes wemeEditorialFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-11px);
+  }
+}
+
+@media (max-width: 930px) {
+  .human-connection-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  }
+  .pass-editorial-art {
+    right: -100px;
+    width: 300px;
+    opacity: 0.6;
+  }
+  .directory-editorial-side {
+    min-width: 115px;
+  }
+}
+
+@media (max-width: 700px) {
+  .human-connection-layout {
+    grid-template-columns: 1fr;
+    text-align: center;
+    gap: 4px;
+  }
+  .human-connection-copy p {
+    margin-inline: auto;
+  }
+  .human-connection-visual {
+    min-height: 170px;
+  }
+  .human-connection-visual img {
+    max-width: 550px;
+  }
+  .tour-editorial-detail {
+    right: -12px;
+    bottom: -27px;
+    width: 130px;
+    max-width: 26%;
+  }
+  .directory-editorial-side {
+    gap: 0;
+  }
+  .directory-editorial-art {
+    width: 100px;
+    max-height: 95px;
+  }
+  .pass-editorial-art {
+    width: 240px;
+    max-width: 50%;
+    right: -85px;
+    top: 42%;
+    opacity: 0.31;
+  }
+  .studio-footer-top {
+    gap: 25px;
+  }
+  .footer-panorama {
+    min-height: 390px;
+  }
+  .footer-panorama-content {
+    min-height: 390px;
+  }
+  .footer-panorama .footer-wordmark {
+    font-size: clamp(93px, 24vw, 215px);
+  }
+  .pdf-empty-editorial {
+    width: 43%;
+    opacity: 0.25;
+  }
+}
+
+@media (max-width: 440px) {
+  .editorial-feature-art > img {
+    height: 185px;
+  }
+  .directory-editorial-art {
+    display: none;
+  }
+  .directory-editorial-side {
+    min-width: 0;
+  }
+  .directory-editorial-side .tool-count {
+    white-space: normal;
+    text-align: right;
+  }
+  .footer-panorama-image {
+    object-position: 58% center;
+  }
+  .footer-panorama .footer-wordmark {
+    font-size: clamp(84px, 23vw, 125px);
+  }
+  .footer-panorama .footer-wordmark i {
+    margin-left: 0.09em;
+  }
+  .footer-panorama .studio-footer-bottom {
+    font-size: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .human-connection-visual img {
+    animation: none;
+  }
+  .editorial-feature-art > img,
+  .tour-editorial-detail,
+  .directory-editorial-art {
+    transition: none;
+  }
+}

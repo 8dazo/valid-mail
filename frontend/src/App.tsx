@@ -1060,8 +1060,8 @@ function AppContent() {
             <section className="hero" aria-labelledby="hero-title">
               <img
                 className="hero-landscape"
-                src="/images/weme-coast.webp"
-                alt="Pixelated turquoise Mediterranean cove framed by pine-covered limestone cliffs"
+                src="/images/editorial/hero-coast.webp"
+                alt="Sunlit Mediterranean sea with distant islands and pine-covered limestone cliffs"
                 fetchPriority="high"
               />
               <div className="hero-copy">
@@ -1160,9 +1160,19 @@ function AppContent() {
                   </h2>
                   <p>Find the one you need. Make something happen.</p>
                 </div>
-                <span className="tool-count">
-                  {tools.length} tools, endless possibilities <ArrowDownMark />
-                </span>
+                <div className="directory-editorial-side">
+                  <img
+                    className="directory-editorial-art"
+                    src="/images/editorial/tool-discovery.webp"
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <span className="tool-count">
+                    {tools.length} tools, endless possibilities{" "}
+                    <ArrowDownMark />
+                  </span>
+                </div>
               </div>
               <div className="directory-controls">
                 <div className="search-wrap">

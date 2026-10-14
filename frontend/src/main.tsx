@@ -5,6 +5,7 @@ import "./styles.css";
 import "./studio.css";
 import "./landing-polish.css";
 import "./pdf-studio.css";
+import "./editorial-visuals.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
