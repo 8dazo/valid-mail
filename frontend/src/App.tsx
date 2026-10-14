@@ -1060,8 +1060,8 @@ function AppContent() {
             <section className="hero" aria-labelledby="hero-title">
               <img
                 className="hero-landscape"
-                src="/images/weme-coast.webp"
-                alt="Pixelated turquoise Mediterranean cove framed by pine-covered limestone cliffs"
+                src="/images/editorial/hero-coast.webp"
+                alt="Warm Mediterranean sunlight on a tranquil blue cove surrounded by pine-covered limestone cliffs"
                 fetchPriority="high"
               />
               <div className="hero-copy">
@@ -1150,7 +1150,7 @@ function AppContent() {
               id="tools"
               aria-labelledby="tools-title"
             >
-              <div className="section-heading">
+              <div className="section-heading editorial-directory-heading">
                 <div>
                   <span className="eyebrow-label">
                     A LITTLE HELP GOES A LONG WAY
@@ -1160,9 +1160,19 @@ function AppContent() {
                   </h2>
                   <p>Find the one you need. Make something happen.</p>
                 </div>
-                <span className="tool-count">
-                  {tools.length} tools, endless possibilities <ArrowDownMark />
-                </span>
+                <div className="editorial-directory-side">
+                  <img
+                    src="/images/editorial/tool-discovery.webp"
+                    className="editorial-directory-art"
+                    alt=""
+                    loading="lazy"
+                    width={700}
+                    height={525}
+                  />
+                  <span className="tool-count">
+                    {tools.length} tools, endless possibilities <ArrowDownMark />
+                  </span>
+                </div>
               </div>
               <div className="directory-controls">
                 <div className="search-wrap">
