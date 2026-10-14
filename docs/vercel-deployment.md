@@ -4,7 +4,26 @@ Deploy the repository root, not just `frontend/`. The current Vercel Go framewor
 
 `vercel.json` selects the Go framework, installs frozen frontend dependencies, compiles the local Go/WebAssembly toolkit, builds the frontend and server, uses the project’s default function duration, enables bounded direct SMTP checks, and disables public proxy/background metadata updates. The root package.json selects Node 24. The Go toolchain directive selects Go 1.27.2. No Render backend URL or cross-origin API proxy is required.
 
-## Deploy
+## Automatic deployments from GitHub
+
+Connect the Vercel project to [8dazo/valid-mail](https://github.com/8dazo/valid-mail). In an existing project, open **Settings → Git → Connect Git Repository**. For a new permanent project, use **Add New → Project → Import Git Repository**. Allow the Vercel GitHub App to access this repository if prompted.
+
+Use these project settings:
+
+| Setting | Value |
+| --- | --- |
+| Repository | `8dazo/valid-mail` |
+| Production branch | `main` |
+| Root directory | Repository root; leave empty, not `frontend/` |
+| Framework preset | Go |
+| Node.js version | 24.x |
+| Build command | Use the repository's `vercel.json` |
+
+Once connected, pushes to `main` start production deployments automatically; other branches and pull requests can create previews. The GitHub workflow runs validation separately. No manual CLI deployment or GitHub Actions deployment token is required for this native Git integration.
+
+Verify the connection in **Settings → Git**, then check that a deployment shows the expected Git commit and reaches **Ready**. If the latest commit predates the connection, deploy `main` once from the project dashboard. Future pushes should deploy automatically. Anonymous temporary previews do not establish this permanent Git connection.
+
+## Manual deployment
 
 Use a current Vercel CLI (the configuration was prepared with v63.1.2):
 
