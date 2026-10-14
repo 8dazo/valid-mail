@@ -204,14 +204,18 @@ function ToolkitArt({ kind }: { kind: "check" | "tidy" | "make" }) {
   );
 }
 
-
 /**
  * A tiny illustrated network of useful tools. The shapes are intentionally SVG,
  * so they stay crisp on retina screens without loading a second hero image.
  */
 export function HeroSignalArt() {
   return (
-    <svg className="hero-signal-art" viewBox="0 0 420 390" fill="none" aria-hidden="true">
+    <svg
+      className="hero-signal-art"
+      viewBox="0 0 420 390"
+      fill="none"
+      aria-hidden="true"
+    >
       <defs>
         <linearGradient id="heroSignalPaper" x1="0" y1="0" x2="1" y2="1">
           <stop stopColor="#ffffff" />
@@ -221,39 +225,149 @@ export function HeroSignalArt() {
           <stop stopColor="#c8b1f6" />
           <stop offset="1" stopColor="#8a72c3" />
         </linearGradient>
-        <filter id="heroSignalShadow" x="-50%" y="-50%" width="200%" height="220%">
-          <feDropShadow dx="0" dy="15" stdDeviation="16" floodColor="#30234d" floodOpacity=".19" />
+        <filter
+          id="heroSignalShadow"
+          x="-50%"
+          y="-50%"
+          width="200%"
+          height="220%"
+        >
+          <feDropShadow
+            dx="0"
+            dy="15"
+            stdDeviation="16"
+            floodColor="#30234d"
+            floodOpacity=".19"
+          />
         </filter>
       </defs>
-      <circle cx="210" cy="192" r="151" stroke="#fff" strokeOpacity=".45" strokeDasharray="3 9" />
+      <circle
+        cx="210"
+        cy="192"
+        r="151"
+        stroke="#fff"
+        strokeOpacity=".45"
+        strokeDasharray="3 9"
+      />
       <circle cx="210" cy="192" r="115" stroke="#fff" strokeOpacity=".52" />
-      <circle cx="210" cy="192" r="78" fill="#ffffff" fillOpacity=".12" stroke="#ffffff" strokeOpacity=".5" />
-      <path className="hero-signal-route" d="M105 131C151 68 279 65 324 139S321 286 238 307 82 254 105 131Z" stroke="#fff" strokeOpacity=".7" strokeWidth="2" strokeDasharray="7 12" />
+      <circle
+        cx="210"
+        cy="192"
+        r="78"
+        fill="#ffffff"
+        fillOpacity=".12"
+        stroke="#ffffff"
+        strokeOpacity=".5"
+      />
+      <path
+        className="hero-signal-route"
+        d="M105 131C151 68 279 65 324 139S321 286 238 307 82 254 105 131Z"
+        stroke="#fff"
+        strokeOpacity=".7"
+        strokeWidth="2"
+        strokeDasharray="7 12"
+      />
       <g className="hero-signal-center" filter="url(#heroSignalShadow)">
-        <rect x="157" y="139" width="106" height="106" rx="33" fill="url(#heroSignalPaper)" />
+        <rect
+          x="157"
+          y="139"
+          width="106"
+          height="106"
+          rx="33"
+          fill="url(#heroSignalPaper)"
+        />
         <rect x="164" y="146" width="92" height="92" rx="27" stroke="#e7dafa" />
-        <path d="M181 189h55m-55 15h36" stroke="#c5b1e6" strokeWidth="7" strokeLinecap="round" />
+        <path
+          d="M181 189h55m-55 15h36"
+          stroke="#c5b1e6"
+          strokeWidth="7"
+          strokeLinecap="round"
+        />
         <circle cx="225" cy="174" r="19" fill="#e0f3e6" />
-        <path d="m215 174 7 7 13-15" stroke="#4f916d" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path
+          d="m215 174 7 7 13-15"
+          stroke="#4f916d"
+          strokeWidth="4.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       </g>
-      <g className="hero-signal-card hero-signal-card-one" filter="url(#heroSignalShadow)">
-        <rect x="20" y="92" width="120" height="77" rx="18" fill="url(#heroSignalPaper)" />
+      <g
+        className="hero-signal-card hero-signal-card-one"
+        filter="url(#heroSignalShadow)"
+      >
+        <rect
+          x="20"
+          y="92"
+          width="120"
+          height="77"
+          rx="18"
+          fill="url(#heroSignalPaper)"
+        />
         <rect x="35" y="110" width="28" height="28" rx="9" fill="#e1d5f9" />
-        <path d="m41 119 8 6 8-6m-16 0v10h16v-10" stroke="#8568bb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M73 117h50M73 128h32" stroke="#c7b9de" strokeWidth="5" strokeLinecap="round" />
+        <path
+          d="m41 119 8 6 8-6m-16 0v10h16v-10"
+          stroke="#8568bb"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M73 117h50M73 128h32"
+          stroke="#c7b9de"
+          strokeWidth="5"
+          strokeLinecap="round"
+        />
         <rect x="35" y="146" width="88" height="7" rx="3.5" fill="#e9e1f4" />
       </g>
-      <g className="hero-signal-card hero-signal-card-two" filter="url(#heroSignalShadow)">
-        <rect x="292" y="130" width="104" height="85" rx="18" fill="url(#heroSignalPaper)" />
+      <g
+        className="hero-signal-card hero-signal-card-two"
+        filter="url(#heroSignalShadow)"
+      >
+        <rect
+          x="292"
+          y="130"
+          width="104"
+          height="85"
+          rx="18"
+          fill="url(#heroSignalPaper)"
+        />
         <rect x="307" y="145" width="74" height="55" rx="10" fill="#e9f4e8" />
-        <path d="m322 171 12 10 20-23" stroke="#75a97d" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
+        <path
+          d="m322 171 12 10 20-23"
+          stroke="#75a97d"
+          strokeWidth="6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
         <circle cx="363" cy="165" r="4" fill="#b3cdb4" />
       </g>
-      <g className="hero-signal-card hero-signal-card-three" filter="url(#heroSignalShadow)">
-        <rect x="91" y="270" width="139" height="71" rx="18" fill="url(#heroSignalPaper)" />
+      <g
+        className="hero-signal-card hero-signal-card-three"
+        filter="url(#heroSignalShadow)"
+      >
+        <rect
+          x="91"
+          y="270"
+          width="139"
+          height="71"
+          rx="18"
+          fill="url(#heroSignalPaper)"
+        />
         <rect x="105" y="283" width="39" height="42" rx="10" fill="#f4e1d9" />
-        <path d="m127 291-8 13 8 13m-2-13h12" stroke="#b78875" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M153 292h61m-61 12h46m-46 12h55" stroke="#d7c8e9" strokeWidth="5" strokeLinecap="round" />
+        <path
+          d="m127 291-8 13 8 13m-2-13h12"
+          stroke="#b78875"
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M153 292h61m-61 12h46m-46 12h55"
+          stroke="#d7c8e9"
+          strokeWidth="5"
+          strokeLinecap="round"
+        />
       </g>
       <g className="hero-signal-spark">
         <path d="m334 57 7 16 16 7-16 7-7 16-7-16-16-7 16-7z" fill="#f9e2a9" />
@@ -296,7 +410,16 @@ export function LandingIntro({
             initial={reduced ? false : { opacity: 0, y: 18 }}
             whileInView={reduced ? undefined : { opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.5, delay: ["Everyday tools", "Work locally", "Accounts needed", "Free to use"].indexOf(title) * 0.06 }}
+            transition={{
+              duration: 0.5,
+              delay:
+                [
+                  "Everyday tools",
+                  "Work locally",
+                  "Accounts needed",
+                  "Free to use",
+                ].indexOf(title) * 0.06,
+            }}
           >
             <strong>{value}</strong>
             <h3>{title}</h3>
@@ -311,12 +434,14 @@ export function LandingIntro({
       >
         <div className="studio-section-heading">
           <div>
-            <span className="studio-kicker">THOUGHTFUL TOOLS, BEAUTIFULLY SIMPLE</span>
-          <h2 id="features-title">
-            Everything you need
-            <br />
-            to keep things moving.
-          </h2>
+            <span className="studio-kicker">
+              THOUGHTFUL TOOLS, BEAUTIFULLY SIMPLE
+            </span>
+            <h2 id="features-title">
+              Everything you need
+              <br />
+              to keep things moving.
+            </h2>
           </div>
           <p>
             From a messy bit of data to a finished little idea.
@@ -424,7 +549,13 @@ export function LandingIntro({
           Just a little room to work.
         </h2>
         <p>Useful controls. Clear results. A shortcut that feels like yours.</p>
-        <motion.div className="tour-frame" initial={reduced ? false : { opacity: 0, y: 34, scale: 0.985 }} whileInView={reduced ? undefined : { opacity: 1, y: 0, scale: 1 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.7, ease: "easeOut" }}>
+        <motion.div
+          className="tour-frame"
+          initial={reduced ? false : { opacity: 0, y: 34, scale: 0.985 }}
+          whileInView={reduced ? undefined : { opacity: 1, y: 0, scale: 1 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.7, ease: "easeOut" }}
+        >
           <div className="tour-browser">
             <div className="tour-browser-bar">
               <span>
@@ -483,12 +614,14 @@ export function LandingIntro({
       <section className="studio-picks container" aria-labelledby="picks-title">
         <div className="studio-section-heading">
           <div>
-            <span className="studio-kicker">MADE FOR LITTLE MOMENTS OF PROGRESS</span>
-          <h2 id="picks-title">
-            You bring the idea.
-            <br />
-            We’ll bring the little tools.
-          </h2>
+            <span className="studio-kicker">
+              MADE FOR LITTLE MOMENTS OF PROGRESS
+            </span>
+            <h2 id="picks-title">
+              You bring the idea.
+              <br />
+              We’ll bring the little tools.
+            </h2>
           </div>
           <p>
             A few good places to start.

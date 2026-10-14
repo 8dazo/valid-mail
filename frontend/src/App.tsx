@@ -59,7 +59,12 @@ import {
   GeneratedValues,
   MarkdownPreview,
 } from "./ResultViews";
-import { HeroSignalArt, LandingIntro, LandingOutro, StudioFooter } from "./Landing";
+import {
+  HeroSignalArt,
+  LandingIntro,
+  LandingOutro,
+  StudioFooter,
+} from "./Landing";
 import "./fonts.css";
 import "@fontsource/instrument-serif/latin-400.css";
 import "@fontsource/instrument-serif/latin-400-italic.css";
@@ -1074,7 +1079,9 @@ function AppContent() {
                   </div>
                 </motion.div>
               </div>
-              <div className="hero-signal"><HeroSignalArt /></div>
+              <div className="hero-signal">
+                <HeroSignalArt />
+              </div>
               <div className="coast-caption">
                 <span>Small tools. A little breathing room.</span>
                 <span>01 — The everyday collection</span>
