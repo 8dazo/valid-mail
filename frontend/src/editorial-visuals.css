@@ -1,0 +1,295 @@
+/* WeMe editorial visual chapter: artwork stays distinct from live UI and wordmarks. */
+:root {
+  --editorial-ivory: #f7f3ea;
+  --editorial-ink: #323540;
+  --editorial-sea: #9fc3cc;
+}
+
+.studio-feature .editorial-feature-stage {
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-direction: column;
+  min-height: 230px;
+  padding: 17px;
+  overflow: hidden;
+  background: rgba(255, 252, 249, 0.9);
+}
+.editorial-feature-label,
+.editorial-feature-pill {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.45;
+}
+.editorial-feature-label {
+  align-self: flex-start;
+  padding: 7px 10px;
+  color: #71617f;
+  background: rgba(255,255,255,.85);
+  border: 1px solid rgba(157,140,161,.18);
+}
+.editorial-feature-pill {
+  align-self: center;
+  padding: 8px 12px;
+  background: rgba(255,255,255,.96);
+  box-shadow: 0 5px 20px rgba(90,70,85,.07);
+  color: #625a68;
+  white-space: nowrap;
+}
+.editorial-feature-pill svg { color: #628c6b; }
+.editorial-feature-art {
+  position: absolute;
+  inset: 9% 6% 8%;
+  width: 88%;
+  height: 83%;
+  object-fit: contain;
+  object-position: center;
+  z-index: 1;
+  pointer-events: none;
+  filter: drop-shadow(0 14px 15px rgba(78,60,65,.1));
+  transition: transform .6s cubic-bezier(.2,.7,.2,1);
+}
+.studio-feature:hover .editorial-feature-art,
+.studio-feature:focus-within .editorial-feature-art {
+  transform: translateY(-8px) rotate(-2deg) scale(1.035);
+}
+.studio-feature.sage .editorial-feature-art { transform: rotate(2deg) translateY(5px); }
+.studio-feature.sage:hover .editorial-feature-art { transform: rotate(-2deg) translateY(-6px) scale(1.035); }
+.studio-feature.rose .editorial-feature-art { transform: rotate(-2deg); }
+.studio-feature.rose:hover .editorial-feature-art { transform: rotate(2deg) translateY(-7px) scale(1.035); }
+
+/* The reaching hands are a transparent layered subject, not a fake AI feature. */
+.editorial-human {
+  position: relative;
+  isolation: isolate;
+  min-height: 500px;
+  margin-top: 85px;
+  margin-bottom: 4px;
+  padding: 65px 38px 0;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 18%, #fffcf7 5%, #f5eddf 67%, #f1e9e4 100%);
+  border: 1px solid #f0e7dc;
+  border-radius: 36px;
+  text-align: center;
+}
+.editorial-human::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 73% 80%, rgba(181, 212, 218, .32), transparent 40%);
+  pointer-events:none;
+}
+.editorial-human-copy {
+  position: relative;
+  z-index: 2;
+  max-width: 760px;
+  margin: 0 auto;
+}
+.editorial-human h2 {
+  font-size: clamp(34px, 4.3vw, 60px);
+  line-height: 1.09;
+  letter-spacing: -.055em;
+  color: #403b46;
+  margin: 16px 0;
+}
+.editorial-human h2 em {
+  font-family: "Instrument Serif", Georgia, serif;
+  font-weight: 400;
+  color: #9777a7;
+  letter-spacing: -.025em;
+}
+.editorial-human p {
+  max-width: 540px;
+  margin: auto;
+  line-height: 1.75;
+  font-size: 13px;
+  color: #786d79;
+}
+.editorial-human-hands {
+  position: absolute;
+  z-index: 1;
+  width: min(1030px, 100%);
+  height: auto;
+  max-width: none;
+  left: 50%;
+  bottom: -230px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  filter: drop-shadow(0 15px 22px rgba(84,75,95,.08));
+}
+.editorial-tour-detail {
+  position: absolute;
+  z-index: 3;
+  width: clamp(105px, 16vw, 210px);
+  height: auto;
+  object-fit: contain;
+  left: -64px;
+  bottom: -48px;
+  transform: rotate(-7deg);
+  pointer-events: none;
+  filter: drop-shadow(0 16px 25px rgba(79,66,75,.12));
+}
+.studio-tour .tour-frame {
+  position: relative;
+  overflow: visible;
+}
+
+/* The directory has a tiny still-life illustration, never photography under search results. */
+.editorial-directory-heading { align-items: center; }
+.editorial-directory-side {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-end;
+  flex-direction: column;
+  gap: 0;
+}
+.editorial-directory-art {
+  display: block;
+  width: min(215px, 21vw);
+  height: 132px;
+  object-fit: contain;
+  margin: -15px 5px -12px auto;
+  transform: rotate(3deg);
+  pointer-events: none;
+  filter: drop-shadow(0 8px 16px rgba(54,48,56,.09));
+}
+.editorial-pass-art {
+  position: absolute;
+  z-index: 0;
+  width: clamp(210px, 29vw, 355px);
+  height: auto;
+  right: -65%;
+  top: -55px;
+  pointer-events: none;
+  filter: drop-shadow(0 22px 25px rgba(79,66,75,.1));
+}
+.studio-pass .pass-card { position: relative; }
+.studio-pass .pass-card-paper,
+.studio-pass .pass-card > button { position: relative; z-index: 2; }
+
+/* Dramatic panoramic footer, with real selectable HTML text on top of the photo. */
+.studio-footer {
+  background: #f7f3ec;
+  border-top: 1px solid #eee5db;
+  padding-bottom: 0;
+}
+.studio-footer-top { padding-bottom: 20px; }
+.editorial-footer-panorama {
+  position: relative;
+  isolation: isolate;
+  margin-top: 46px;
+  margin-left: calc(50% - 50vw);
+  width: 100vw;
+  height: clamp(320px, 32vw, 520px);
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: #aecbd0;
+}
+.editorial-footer-photo {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 60%;
+}
+.editorial-footer-panorama::after {
+  content:"";
+  pointer-events:none;
+  position:absolute;
+  inset: 0;
+  z-index:-1;
+  background: linear-gradient(to top, rgba(32,42,51,.40) 0%, rgba(39,45,48,.08) 46%, transparent 75%);
+}
+.editorial-footer-panorama .footer-wordmark {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: 0.015em;
+  width: 100%;
+  margin: 0;
+  padding: 0 3% 0;
+  justify-content: center;
+  line-height: .78;
+  letter-spacing: -.095em;
+  font-size: clamp(150px, 27.5vw, 490px);
+  font-weight: 750;
+  color: #fff9eb;
+  transform: translateY(.08em);
+  user-select: none;
+}
+.editorial-footer-panorama .footer-wordmark span,
+.editorial-footer-panorama .footer-wordmark span:nth-child(n) {
+  color: #fff9eb;
+  text-shadow: 0 4px 25px rgba(40,44,55,.18);
+}
+.editorial-footer-panorama .footer-wordmark i {
+  font-size: .13em;
+  margin: 0 0 1.05em .02em;
+  color: #fff9eb;
+}
+.editorial-footer-landscape-note {
+  position: absolute;
+  z-index: 2;
+  top: 28px;
+  left: clamp(22px, 4vw, 80px);
+  color: #fff9ec;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 9px rgba(43,51,56,.3);
+}
+.studio-footer-bottom { border-color: #e4ddcf; padding: 16px 0 24px; margin-top: 0; }
+
+@media (max-width: 980px) {
+  .editorial-human { min-height: 440px; }
+  .editorial-human-hands { bottom: -210px; width: min(900px, 110%); }
+  .editorial-pass-art { right: -45%; width: 230px; }
+  .editorial-tour-detail { left: -20px; bottom: -25px; }
+}
+@media (max-width: 720px) {
+  .studio-feature .editorial-feature-stage { min-height: 195px; }
+  .editorial-feature-art { inset: 2% 16%; width: 68%; height: 92%; }
+  .editorial-feature-label,.editorial-feature-pill { font-size: 10px; }
+  .editorial-human { min-height: 390px; padding: 40px 16px 0; margin-top: 50px; border-radius: 24px; }
+  .editorial-human h2 { font-size: clamp(30px,8vw,43px); }
+  .editorial-human p { font-size: 11px; }
+  .editorial-human-hands { width: 115%; bottom: -94px; }
+  .editorial-tour-detail { display: none; }
+  .editorial-directory-art { display: none; }
+  .editorial-pass-art { display: none; }
+  .editorial-footer-panorama { height: 330px; margin-top: 28px; }
+  .editorial-footer-photo { object-position: 36% center; }
+  .editorial-footer-panorama .footer-wordmark { font-size: clamp(130px, 31vw, 230px); padding-inline: 1%; }
+  .editorial-footer-panorama .footer-wordmark i { display: none; }
+  .editorial-footer-landscape-note { top: 20px; font-size: 10px; }
+}
+@media (max-width: 460px) {
+  .editorial-human { min-height: 335px; padding-top: 36px; }
+  .editorial-human-hands { width: 143%; bottom: -68px; }
+  .editorial-human-copy p { max-width: 340px; }
+  .editorial-footer-panorama { height: 285px; }
+  .editorial-footer-panorama .footer-wordmark { font-size: 31vw; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .editorial-feature-art { transition: none; }
+  .studio-feature:hover .editorial-feature-art,
+  .studio-feature:focus-within .editorial-feature-art,
+  .studio-feature.sage:hover .editorial-feature-art,
+  .studio-feature.rose:hover .editorial-feature-art { transform: none; }
+}
