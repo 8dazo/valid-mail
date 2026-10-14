@@ -24,7 +24,6 @@ import {
   Type,
   UploadCloud,
   WandSparkles,
-  X,
 } from "lucide-react";
 
 type PdfAction =
