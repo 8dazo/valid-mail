@@ -23,11 +23,11 @@ jobs:
           go mod tidy
           gofmt -w pdf_editor.go
           npm ci --prefix frontend --no-fund
-          npx --prefix frontend prettier --write frontend/src/PDFStudio.tsx frontend/src/App.tsx frontend/src/catalog.ts frontend/src/main.tsx frontend/src/pdf-studio.css
+          npx --prefix frontend prettier --write frontend/e2e/pdf.spec.ts frontend/src/PDFStudio.tsx frontend/src/App.tsx frontend/src/catalog.ts frontend/src/main.tsx frontend/src/pdf-studio.css
           npm run docs:update
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add go.mod go.sum pdf_editor.go frontend/src/PDFStudio.tsx frontend/src/App.tsx frontend/src/catalog.ts frontend/src/main.tsx frontend/src/pdf-studio.css README.md
+          git add go.mod go.sum pdf_editor.go frontend/e2e/pdf.spec.ts frontend/src/PDFStudio.tsx frontend/src/App.tsx frontend/src/catalog.ts frontend/src/main.tsx frontend/src/pdf-studio.css README.md
           if ! git diff --cached --quiet; then
             git commit -m 'chore(pdf): sync generated sources'
             git push origin HEAD:feat/pdf-studio-editor
