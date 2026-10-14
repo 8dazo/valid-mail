@@ -1169,7 +1169,8 @@ function AppContent() {
                     decoding="async"
                   />
                   <span className="tool-count">
-                    {tools.length} tools, endless possibilities <ArrowDownMark />
+                    {tools.length} tools, endless possibilities{" "}
+                    <ArrowDownMark />
                   </span>
                 </div>
               </div>

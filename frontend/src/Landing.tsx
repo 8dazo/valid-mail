@@ -458,7 +458,12 @@ export function LandingIntro({
             transition={{ duration: 0.55, ease: "easeOut" }}
           >
             <div className="feature-mini editorial-feature-art">
-              <img src="/images/editorial/feature-check.webp" alt="" loading="lazy" decoding="async" />
+              <img
+                src="/images/editorial/feature-check.webp"
+                alt=""
+                loading="lazy"
+                decoding="async"
+              />
               <span className="editorial-feature-tag">
                 <MailCheck size={14} /> Check an address
               </span>
@@ -481,7 +486,12 @@ export function LandingIntro({
             transition={{ duration: 0.55, ease: "easeOut" }}
           >
             <div className="feature-mini editorial-feature-art">
-              <img src="/images/editorial/feature-tidy.webp" alt="" loading="lazy" decoding="async" />
+              <img
+                src="/images/editorial/feature-tidy.webp"
+                alt=""
+                loading="lazy"
+                decoding="async"
+              />
               <span className="editorial-feature-tag">
                 <Braces size={14} /> Tidy your data
               </span>
@@ -504,7 +514,12 @@ export function LandingIntro({
             transition={{ duration: 0.55, ease: "easeOut" }}
           >
             <div className="feature-mini editorial-feature-art">
-              <img src="/images/editorial/feature-make.webp" alt="" loading="lazy" decoding="async" />
+              <img
+                src="/images/editorial/feature-make.webp"
+                alt=""
+                loading="lazy"
+                decoding="async"
+              />
               <span className="editorial-feature-tag">
                 <FileText size={14} /> Make something new
               </span>
@@ -527,7 +542,9 @@ export function LandingIntro({
       >
         <div className="container human-connection-layout">
           <div className="human-connection-copy">
-            <span className="studio-kicker">HUMAN IDEAS, THOUGHTFUL TECHNOLOGY</span>
+            <span className="studio-kicker">
+              HUMAN IDEAS, THOUGHTFUL TECHNOLOGY
+            </span>
             <h2 id="human-connection-title">
               Made for your ideas.
               <br />
@@ -897,14 +914,14 @@ export function StudioFooter({
         />
         <div className="container footer-panorama-content">
           <div className="footer-wordmark" aria-hidden="true">
-          <span>W</span>
-          <span>e</span>
-          <span>M</span>
-          <span>e</span>
-          <i>
-            <Sparkles strokeWidth={1.2} />
-          </i>
-        </div>
+            <span>W</span>
+            <span>e</span>
+            <span>M</span>
+            <span>e</span>
+            <i>
+              <Sparkles strokeWidth={1.2} />
+            </i>
+          </div>
           <div className="studio-footer-bottom">
             <span>A little less friction. A little more you.</span>
             <span>© {new Date().getFullYear()} WeMe</span>

@@ -314,8 +314,13 @@
 }
 
 @keyframes wemeEditorialFloat {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-11px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-11px);
+  }
 }
 
 @media (max-width: 930px) {
