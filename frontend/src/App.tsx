@@ -1060,8 +1060,8 @@ function AppContent() {
             <section className="hero" aria-labelledby="hero-title">
               <img
                 className="hero-landscape"
-                src="/images/editorial/hero-coast.webp"
-                alt="Sunlit Mediterranean sea with distant islands and pine-covered limestone cliffs"
+                src="/images/editorial/hero-sea-wide.webp"
+                alt="A golden Mediterranean coastline framing open blue sea between two islands"
                 fetchPriority="high"
               />
               <div className="hero-copy">
