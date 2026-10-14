@@ -1,7 +1,7 @@
 import { certificateExample } from "./certificate-example.ts";
 
 export type Category =
-  "Validation" | "Conversion" | "Generators" | "Developer" | "Text";
+  "Validation" | "Conversion" | "Generators" | "Developer" | "Text" | "Documents";
 export type Field = {
   key: string;
   label: string;
@@ -51,6 +51,23 @@ const select = (
 const github = (repo: string) => `https://github.com/${repo}`;
 
 export const tools: Tool[] = [
+  {
+    id: "pdf",
+    name: "PDF editor & signer",
+    description: "Edit existing PDF text, format, annotate, sign, merge, redact, and organize pages.",
+    category: "Documents",
+    icon: "FilePenLine",
+    color: "purple",
+    action: "Open PDF studio",
+    featured: true,
+    server: true,
+    layout: "document",
+    library: "SalvioniDigitalSolutions/gopdf",
+    source: github("SalvioniDigitalSolutions/gopdf"),
+    fields: [],
+    example: {},
+    note: "PDFs are uploaded to the Go server for processing and deleted after each request. Visual signatures are not digital certificates.",
+  },
   {
     id: "email",
     layout: "compact",
@@ -983,6 +1000,7 @@ export const categories: Category[] = [
   "Generators",
   "Developer",
   "Text",
+  "Documents",
 ];
 export function initialValues(tool: Tool): Record<string, string> {
   return Object.fromEntries(
