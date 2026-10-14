@@ -23,8 +23,8 @@ vi.mock("./go-tools", () => ({
 }));
 
 describe("the complete tool collection", () => {
-  it("has 39 unique tools with working local Go examples", async () => {
-    expect(tools.length).toBe(39);
+  it("has 40 unique tools with working local Go examples", async () => {
+    expect(tools.length).toBe(40);
     expect(new Set(tools.map((tool) => tool.id)).size).toBe(tools.length);
     for (const tool of tools.filter((tool) => !tool.server)) {
       const result = await runTool(tool.id, tool.example);
