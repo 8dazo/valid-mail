@@ -1011,7 +1011,7 @@ function AppContent() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
           >
-            tool.id === "pdf" ? (
+            {tool.id === "pdf" ? (
               <PDFStudio onBack={() => navigate(null)} onRun={() => setRecent((previous) => ["pdf", ...previous.filter((id) => id !== "pdf")].slice(0,8))}/>
             ) : (
             <ToolWorkspace
