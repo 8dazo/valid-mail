@@ -1,4 +1,5 @@
 import { useId } from "react";
+import { motion, useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
 import {
   ArrowRight,
@@ -48,7 +49,7 @@ function ToolkitArt({ kind }: { kind: "check" | "tidy" | "make" }) {
       </defs>
       <ellipse cx="162" cy="187" rx="100" ry="10" fill="#715492" opacity=".1" />
       {kind === "check" ? (
-        <g filter={`url(#${id}-shadow)`}>
+        <g className="toolkit-art-main" filter={`url(#${id}-shadow)`}>
           <rect
             x="88"
             y="35"
@@ -96,7 +97,7 @@ function ToolkitArt({ kind }: { kind: "check" | "tidy" | "make" }) {
           />
         </g>
       ) : kind === "tidy" ? (
-        <g filter={`url(#${id}-shadow)`}>
+        <g className="toolkit-art-main" filter={`url(#${id}-shadow)`}>
           <rect
             x="117"
             y="45"
@@ -147,7 +148,7 @@ function ToolkitArt({ kind }: { kind: "check" | "tidy" | "make" }) {
           </text>
         </g>
       ) : (
-        <g filter={`url(#${id}-shadow)`}>
+        <g className="toolkit-art-main" filter={`url(#${id}-shadow)`}>
           <rect
             x="83"
             y="43"
@@ -203,6 +204,181 @@ function ToolkitArt({ kind }: { kind: "check" | "tidy" | "make" }) {
   );
 }
 
+/**
+ * A tiny illustrated network of useful tools. The shapes are intentionally SVG,
+ * so they stay crisp on retina screens without loading a second hero image.
+ */
+export function HeroSignalArt() {
+  return (
+    <svg
+      className="hero-signal-art"
+      viewBox="0 0 420 390"
+      fill="none"
+      aria-hidden="true"
+    >
+      <defs>
+        <linearGradient id="heroSignalPaper" x1="0" y1="0" x2="1" y2="1">
+          <stop stopColor="#ffffff" />
+          <stop offset="1" stopColor="#faf3ff" />
+        </linearGradient>
+        <linearGradient id="heroSignalDisc" x1="0" y1="0" x2="1" y2="1">
+          <stop stopColor="#c8b1f6" />
+          <stop offset="1" stopColor="#8a72c3" />
+        </linearGradient>
+        <filter
+          id="heroSignalShadow"
+          x="-50%"
+          y="-50%"
+          width="200%"
+          height="220%"
+        >
+          <feDropShadow
+            dx="0"
+            dy="15"
+            stdDeviation="16"
+            floodColor="#30234d"
+            floodOpacity=".19"
+          />
+        </filter>
+      </defs>
+      <circle
+        cx="210"
+        cy="192"
+        r="151"
+        stroke="#fff"
+        strokeOpacity=".45"
+        strokeDasharray="3 9"
+      />
+      <circle cx="210" cy="192" r="115" stroke="#fff" strokeOpacity=".52" />
+      <circle
+        cx="210"
+        cy="192"
+        r="78"
+        fill="#ffffff"
+        fillOpacity=".12"
+        stroke="#ffffff"
+        strokeOpacity=".5"
+      />
+      <path
+        className="hero-signal-route"
+        d="M105 131C151 68 279 65 324 139S321 286 238 307 82 254 105 131Z"
+        stroke="#fff"
+        strokeOpacity=".7"
+        strokeWidth="2"
+        strokeDasharray="7 12"
+      />
+      <g className="hero-signal-center" filter="url(#heroSignalShadow)">
+        <rect
+          x="157"
+          y="139"
+          width="106"
+          height="106"
+          rx="33"
+          fill="url(#heroSignalPaper)"
+        />
+        <rect x="164" y="146" width="92" height="92" rx="27" stroke="#e7dafa" />
+        <path
+          d="M181 189h55m-55 15h36"
+          stroke="#c5b1e6"
+          strokeWidth="7"
+          strokeLinecap="round"
+        />
+        <circle cx="225" cy="174" r="19" fill="#e0f3e6" />
+        <path
+          d="m215 174 7 7 13-15"
+          stroke="#4f916d"
+          strokeWidth="4.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </g>
+      <g
+        className="hero-signal-card hero-signal-card-one"
+        filter="url(#heroSignalShadow)"
+      >
+        <rect
+          x="20"
+          y="92"
+          width="120"
+          height="77"
+          rx="18"
+          fill="url(#heroSignalPaper)"
+        />
+        <rect x="35" y="110" width="28" height="28" rx="9" fill="#e1d5f9" />
+        <path
+          d="m41 119 8 6 8-6m-16 0v10h16v-10"
+          stroke="#8568bb"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M73 117h50M73 128h32"
+          stroke="#c7b9de"
+          strokeWidth="5"
+          strokeLinecap="round"
+        />
+        <rect x="35" y="146" width="88" height="7" rx="3.5" fill="#e9e1f4" />
+      </g>
+      <g
+        className="hero-signal-card hero-signal-card-two"
+        filter="url(#heroSignalShadow)"
+      >
+        <rect
+          x="292"
+          y="130"
+          width="104"
+          height="85"
+          rx="18"
+          fill="url(#heroSignalPaper)"
+        />
+        <rect x="307" y="145" width="74" height="55" rx="10" fill="#e9f4e8" />
+        <path
+          d="m322 171 12 10 20-23"
+          stroke="#75a97d"
+          strokeWidth="6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <circle cx="363" cy="165" r="4" fill="#b3cdb4" />
+      </g>
+      <g
+        className="hero-signal-card hero-signal-card-three"
+        filter="url(#heroSignalShadow)"
+      >
+        <rect
+          x="91"
+          y="270"
+          width="139"
+          height="71"
+          rx="18"
+          fill="url(#heroSignalPaper)"
+        />
+        <rect x="105" y="283" width="39" height="42" rx="10" fill="#f4e1d9" />
+        <path
+          d="m127 291-8 13 8 13m-2-13h12"
+          stroke="#b78875"
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M153 292h61m-61 12h46m-46 12h55"
+          stroke="#d7c8e9"
+          strokeWidth="5"
+          strokeLinecap="round"
+        />
+      </g>
+      <g className="hero-signal-spark">
+        <path d="m334 57 7 16 16 7-16 7-7 16-7-16-16-7 16-7z" fill="#f9e2a9" />
+        <circle cx="65" cy="225" r="7" fill="#d2edce" />
+        <circle cx="282" cy="310" r="5" fill="#ebcde1" />
+        <path d="m52 51 4 7 8 4-8 4-4 8-4-8-7-4 7-4z" fill="#ffebd2" />
+      </g>
+    </svg>
+  );
+}
+
 export function LandingIntro({
   count,
   localCount,
@@ -212,6 +388,7 @@ export function LandingIntro({
   localCount: number;
   onOpen: OpenTool;
 }) {
+  const reduced = useReducedMotion();
   return (
     <div className="studio-landing">
       <section
@@ -228,11 +405,26 @@ export function LandingIntro({
           ["0", "Accounts needed", "Skip the setup. Start creating."],
           ["100%", "Free to use", "A good shortcut for everyone."],
         ].map(([value, title, text]) => (
-          <div key={title}>
+          <motion.div
+            key={title}
+            initial={reduced ? false : { opacity: 0, y: 18 }}
+            whileInView={reduced ? undefined : { opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{
+              duration: 0.5,
+              delay:
+                [
+                  "Everyday tools",
+                  "Work locally",
+                  "Accounts needed",
+                  "Free to use",
+                ].indexOf(title) * 0.06,
+            }}
+          >
             <strong>{value}</strong>
             <h3>{title}</h3>
             <p>{text}</p>
-          </div>
+          </motion.div>
         ))}
       </section>
       <section
@@ -241,11 +433,16 @@ export function LandingIntro({
         aria-labelledby="features-title"
       >
         <div className="studio-section-heading">
-          <h2 id="features-title">
-            Everything you need
-            <br />
-            to keep things moving.
-          </h2>
+          <div>
+            <span className="studio-kicker">
+              THOUGHTFUL TOOLS, BEAUTIFULLY SIMPLE
+            </span>
+            <h2 id="features-title">
+              Everything you need
+              <br />
+              to keep things moving.
+            </h2>
+          </div>
           <p>
             From a messy bit of data to a finished little idea.
             <br />
@@ -253,7 +450,13 @@ export function LandingIntro({
           </p>
         </div>
         <div className="studio-feature-grid">
-          <article className="studio-feature peach">
+          <motion.article
+            className="studio-feature peach"
+            initial={reduced ? false : { opacity: 0, y: 26 }}
+            whileInView={reduced ? undefined : { opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.15 }}
+            transition={{ duration: 0.55, ease: "easeOut" }}
+          >
             <div className="feature-mini">
               <span>
                 <MailCheck size={14} /> Email check
@@ -275,8 +478,14 @@ export function LandingIntro({
             <button onClick={() => onOpen("email")}>
               Check an email <ArrowUpRight size={16} />
             </button>
-          </article>
-          <article className="studio-feature sage">
+          </motion.article>
+          <motion.article
+            className="studio-feature sage"
+            initial={reduced ? false : { opacity: 0, y: 26 }}
+            whileInView={reduced ? undefined : { opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.15 }}
+            transition={{ duration: 0.55, ease: "easeOut" }}
+          >
             <div className="feature-mini mini-code">
               <span>
                 <Braces size={14} /> JSON formatter
@@ -299,8 +508,14 @@ export function LandingIntro({
             <button onClick={() => onOpen("json")}>
               Tidy some JSON <ArrowUpRight size={16} />
             </button>
-          </article>
-          <article className="studio-feature rose">
+          </motion.article>
+          <motion.article
+            className="studio-feature rose"
+            initial={reduced ? false : { opacity: 0, y: 26 }}
+            whileInView={reduced ? undefined : { opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.15 }}
+            transition={{ duration: 0.55, ease: "easeOut" }}
+          >
             <div className="feature-mini mini-export">
               <div className="export-stack">
                 <div />
@@ -323,7 +538,7 @@ export function LandingIntro({
             <button onClick={() => onOpen("qr")}>
               Make a QR code <ArrowUpRight size={16} />
             </button>
-          </article>
+          </motion.article>
         </div>
       </section>
       <section className="studio-tour container" aria-labelledby="tour-title">
@@ -334,7 +549,13 @@ export function LandingIntro({
           Just a little room to work.
         </h2>
         <p>Useful controls. Clear results. A shortcut that feels like yours.</p>
-        <div className="tour-frame">
+        <motion.div
+          className="tour-frame"
+          initial={reduced ? false : { opacity: 0, y: 34, scale: 0.985 }}
+          whileInView={reduced ? undefined : { opacity: 1, y: 0, scale: 1 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.7, ease: "easeOut" }}
+        >
           <div className="tour-browser">
             <div className="tour-browser-bar">
               <span>
@@ -385,18 +606,23 @@ export function LandingIntro({
             <br />
             More good stuff.
           </div>
-        </div>
+        </motion.div>
         <button className="button studio-button" onClick={() => onOpen("json")}>
           Try the workspace <ArrowRight size={16} />
         </button>
       </section>
       <section className="studio-picks container" aria-labelledby="picks-title">
         <div className="studio-section-heading">
-          <h2 id="picks-title">
-            You bring the idea.
-            <br />
-            We’ll bring the little tools.
-          </h2>
+          <div>
+            <span className="studio-kicker">
+              MADE FOR LITTLE MOMENTS OF PROGRESS
+            </span>
+            <h2 id="picks-title">
+              You bring the idea.
+              <br />
+              We’ll bring the little tools.
+            </h2>
+          </div>
           <p>
             A few good places to start.
             <br />
@@ -427,9 +653,13 @@ export function LandingIntro({
               action: "Create a QR code",
             },
           ].map((item) => (
-            <button
+            <motion.button
               className="studio-pick"
               key={item.id}
+              initial={reduced ? false : { opacity: 0, y: 24 }}
+              whileInView={reduced ? undefined : { opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
               onClick={() => onOpen(item.id)}
             >
               <span className="pick-title">
@@ -441,7 +671,7 @@ export function LandingIntro({
               <span className="pick-action">
                 {item.action} <ArrowRight size={14} />
               </span>
-            </button>
+            </motion.button>
           ))}
         </div>
       </section>
