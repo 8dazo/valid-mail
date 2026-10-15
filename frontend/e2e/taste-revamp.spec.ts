@@ -25,7 +25,9 @@ test("taste redesign uses an editorial layout without sacrificing real tool navi
     await expect(featureCards.first()).toHaveCSS("display", "flex");
   }
 
-  const bodyWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+  const bodyWidth = await page.evaluate(
+    () => document.documentElement.scrollWidth,
+  );
   expect(bodyWidth).toBeLessThanOrEqual(width + 2);
 
   await directory.scrollIntoViewIfNeeded();
@@ -39,7 +41,9 @@ test("taste redesign uses an editorial layout without sacrificing real tool navi
   await expect(page.locator(".output-panel")).toBeVisible();
 });
 
-test("editorial cards, FAQ, and pricing remain keyboard accessible", async ({ page }) => {
+test("editorial cards, FAQ, and pricing remain keyboard accessible", async ({
+  page,
+}) => {
   await page.goto("/");
   const pricing = page.locator(".studio-pass");
   await pricing.scrollIntoViewIfNeeded();

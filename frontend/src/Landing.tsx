@@ -300,12 +300,8 @@ export function LandingIntro({
       >
         <div className="studio-section-heading">
           <div>
-            <span className="studio-kicker">
-              Make the everyday easier
-            </span>
-            <h2 id="features-title">
-              Do the small things well.
-            </h2>
+            <span className="studio-kicker">Make the everyday easier</span>
+            <h2 id="features-title">Do the small things well.</h2>
           </div>
           <p>
             From a messy bit of data to a finished little idea.
@@ -405,9 +401,7 @@ export function LandingIntro({
         aria-labelledby="human-connection-title"
       >
         <div className="human-connection-copy container">
-          <span className="studio-kicker">
-            The human side of useful tools
-          </span>
+          <span className="studio-kicker">The human side of useful tools</span>
           <h2 id="human-connection-title">
             Made for your ideas.
             <br />
@@ -429,9 +423,7 @@ export function LandingIntro({
       </section>
       <section className="studio-tour container" aria-labelledby="tour-title">
         <span className="studio-kicker">See it in action</span>
-        <h2 id="tour-title">
-          From messy to readable.
-        </h2>
+        <h2 id="tour-title">From messy to readable.</h2>
         <p>Useful controls. Clear results. A shortcut that feels like yours.</p>
         <motion.div
           className="tour-frame"
@@ -529,12 +521,8 @@ export function LandingIntro({
       <section className="studio-picks container" aria-labelledby="picks-title">
         <div className="studio-section-heading">
           <div>
-            <span className="studio-kicker">
-              Somewhere to begin
-            </span>
-            <h2 id="picks-title">
-              Pick up where you left off.
-            </h2>
+            <span className="studio-kicker">Somewhere to begin</span>
+            <h2 id="picks-title">Pick up where you left off.</h2>
           </div>
           <p>
             A few good places to start.
@@ -684,9 +672,7 @@ export function LandingOutro({
       >
         <div>
           <span className="studio-kicker">Before you begin</span>
-          <h2 id="faq-title">
-            The useful details.
-          </h2>
+          <h2 id="faq-title">The useful details.</h2>
           <p>
             A calmer corner for builders, writers and curious people. Here’s how
             it works.
