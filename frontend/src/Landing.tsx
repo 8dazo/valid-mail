@@ -300,14 +300,8 @@ export function LandingIntro({
       >
         <div className="studio-section-heading">
           <div>
-            <span className="studio-kicker">
-              THOUGHTFUL TOOLS, BEAUTIFULLY SIMPLE
-            </span>
-            <h2 id="features-title">
-              Everything you need
-              <br />
-              to keep things moving.
-            </h2>
+            <span className="studio-kicker">Make the everyday easier</span>
+            <h2 id="features-title">Do the small things well.</h2>
           </div>
           <p>
             From a messy bit of data to a finished little idea.
@@ -334,7 +328,7 @@ export function LandingIntro({
                 <MailCheck size={14} /> Check an address
               </span>
             </div>
-            <span className="feature-step">01 / CHECK</span>
+            <span className="feature-step">Check</span>
             <h3>A little more certainty.</h3>
             <p>
               Check email addresses, inspect links and understand what’s behind
@@ -362,7 +356,7 @@ export function LandingIntro({
                 <Braces size={14} /> Tidy your data
               </span>
             </div>
-            <span className="feature-step">02 / TIDY</span>
+            <span className="feature-step">Tidy</span>
             <h3>Give the mess some shape.</h3>
             <p>
               Format, convert and preview. Turn the things you’re working on
@@ -390,7 +384,7 @@ export function LandingIntro({
                 <FileText size={14} /> Make something new
               </span>
             </div>
-            <span className="feature-step">03 / MAKE</span>
+            <span className="feature-step">Make</span>
             <h3>Make it. Then make it yours.</h3>
             <p>
               Create a code, a color or a fresh idea. Copy your result or
@@ -407,9 +401,7 @@ export function LandingIntro({
         aria-labelledby="human-connection-title"
       >
         <div className="human-connection-copy container">
-          <span className="studio-kicker">
-            HUMAN IDEAS, THOUGHTFUL TECHNOLOGY
-          </span>
+          <span className="studio-kicker">The human side of useful tools</span>
           <h2 id="human-connection-title">
             Made for your ideas.
             <br />
@@ -430,12 +422,8 @@ export function LandingIntro({
         </div>
       </section>
       <section className="studio-tour container" aria-labelledby="tour-title">
-        <span className="studio-kicker">A SMALL WORKSPACE. A BIG EXHALE.</span>
-        <h2 id="tour-title">
-          You don’t need a complicated workflow.
-          <br />
-          Just a little room to work.
-        </h2>
+        <span className="studio-kicker">See it in action</span>
+        <h2 id="tour-title">From messy to readable.</h2>
         <p>Useful controls. Clear results. A shortcut that feels like yours.</p>
         <motion.div
           className="tour-frame"
@@ -533,14 +521,8 @@ export function LandingIntro({
       <section className="studio-picks container" aria-labelledby="picks-title">
         <div className="studio-section-heading">
           <div>
-            <span className="studio-kicker">
-              MADE FOR LITTLE MOMENTS OF PROGRESS
-            </span>
-            <h2 id="picks-title">
-              You bring the idea.
-              <br />
-              We’ll bring the little tools.
-            </h2>
+            <span className="studio-kicker">Somewhere to begin</span>
+            <h2 id="picks-title">Pick up where you left off.</h2>
           </div>
           <p>
             A few good places to start.
@@ -615,7 +597,7 @@ export function LandingOutro({
         aria-labelledby="pass-title"
       >
         <div className="studio-pass-inner container">
-          <span className="studio-kicker">THE EVERYDAY PASS</span>
+          <span className="studio-kicker">One plan for everyone</span>
           <h2 id="pass-title">
             Good tools are for <em>everyone.</em>
           </h2>
@@ -625,18 +607,6 @@ export function LandingOutro({
             Just a little help when you need it.
           </p>
           <div className="pass-card-stage">
-            <div
-              className="pass-card-spark pass-card-spark--one"
-              aria-hidden="true"
-            >
-              <Sparkles size={23} />
-            </div>
-            <div
-              className="pass-card-spark pass-card-spark--two"
-              aria-hidden="true"
-            >
-              <Sparkles size={16} />
-            </div>
             <div className="pass-card">
               <div className="pass-card-paper">
                 <span className="pass-spark">
@@ -701,12 +671,8 @@ export function LandingOutro({
         aria-labelledby="faq-title"
       >
         <div>
-          <span className="studio-kicker">A FEW LITTLE ANSWERS</span>
-          <h2 id="faq-title">
-            Good questions.
-            <br />
-            Simple answers.
-          </h2>
+          <span className="studio-kicker">Before you begin</span>
+          <h2 id="faq-title">The useful details.</h2>
           <p>
             A calmer corner for builders, writers and curious people. Here’s how
             it works.

@@ -1,0 +1,1055 @@
+/* WeMe × taste-skill: the everyday toolkit as a working desk.
+   Composition before ornament: readable evidence, genuine tool interfaces,
+   purposeful imagery, and distinct layouts for neighbouring chapters.
+   Based on https://github.com/Leonxlnx/taste-skill (MIT).
+   Existing coastal photos and artwork remain the user's approved assets. */
+
+:root {
+  --taste-paper: #fffcf7;
+  --taste-ground: #f5f2eb;
+  --taste-ink: #273b42;
+  --taste-muted: #52636a;
+  --taste-action: #365e67;
+  --taste-action-hover: #234b55;
+  --taste-rule: #d6dedc;
+  --taste-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html {
+  scroll-padding-top: 90px;
+}
+
+body {
+  background: var(--taste-paper);
+  color: var(--taste-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+a,
+summary {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid #387583;
+  outline-offset: 3px;
+}
+
+button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+/* Plain navigation: readable destinations and one clear action. */
+.site-header {
+  background: rgba(255, 252, 247, 0.97);
+  border-color: #dfe5e0;
+  box-shadow: none;
+}
+
+.site-header .brand {
+  color: var(--taste-ink);
+}
+
+.site-header .nav button {
+  color: #526168;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.site-header .nav button:hover {
+  color: #1f4650;
+}
+
+.site-header .header-cta,
+.hero .hero-cta,
+.studio-button,
+.studio-pass .pass-primary-action,
+.workspace .button.primary,
+.pdf-primary {
+  background: var(--taste-action);
+  border-color: var(--taste-action);
+  color: white;
+  box-shadow: none;
+  font-weight: 680;
+  letter-spacing: -0.012em;
+  transition:
+    background-color 200ms ease,
+    transform 250ms var(--taste-ease);
+}
+
+.site-header .header-cta:hover,
+.hero .hero-cta:hover,
+.studio-button:hover,
+.studio-pass .pass-primary-action:hover,
+.workspace .button.primary:hover,
+.pdf-primary:hover:not(:disabled) {
+  background: var(--taste-action-hover);
+  border-color: var(--taste-action-hover);
+  box-shadow: none;
+  transform: translateY(-2px);
+}
+
+.hero {
+  background: #e7eae4;
+}
+
+.hero::before {
+  background: linear-gradient(
+    180deg,
+    rgba(251, 250, 244, 0.44) 0%,
+    rgba(248, 249, 242, 0.24) 49%,
+    rgba(19, 64, 68, 0.14) 100%
+  );
+}
+
+.hero h1 {
+  max-width: 980px;
+  font-family: "Instrument Serif", Georgia, serif;
+  font-weight: 400;
+  letter-spacing: -0.056em;
+  color: #263b43;
+  text-shadow: 0 2px 18px rgba(249, 250, 247, 0.38);
+}
+
+.hero .hero-badge {
+  border: 0;
+  border-radius: 4px;
+  background: rgba(255, 252, 247, 0.83);
+  color: #365b65;
+  letter-spacing: 0;
+  font-size: 13px;
+  box-shadow: none;
+}
+
+.hero .hero-badge::before {
+  background: #4b7b7b;
+  box-shadow: none;
+}
+
+.hero .hero-copy p {
+  color: #3c525b;
+  line-height: 1.72;
+}
+
+.hero .hero-cta {
+  border-radius: 6px;
+  min-height: 53px;
+  padding-inline: 27px;
+}
+
+.hero-meta {
+  color: #385962;
+  font-size: 12px;
+}
+
+/* Replace four candy gradient tiles with a single, useful inventory band. */
+.studio-stats {
+  padding: clamp(32px, 4.6vw, 70px) 0 clamp(65px, 7vw, 110px);
+  gap: clamp(14px, 3vw, 48px);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: start;
+  text-align: left;
+}
+
+.studio-stats > div,
+.studio-stats > div:nth-child(n) {
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+  transform: none;
+}
+
+.studio-stats > div:hover,
+.studio-stats > div:nth-child(n):hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.studio-stats strong {
+  margin: 0 0 14px;
+  font-size: clamp(42px, 5.8vw, 86px);
+  font-weight: 570;
+  line-height: 0.96;
+  letter-spacing: -0.075em;
+  font-variant-numeric: tabular-nums;
+  color: var(--taste-ink);
+}
+
+.studio-stats h3 {
+  color: var(--taste-ink);
+  font-size: 15px;
+  font-weight: 680;
+  margin-bottom: 9px;
+}
+
+.studio-stats p {
+  color: var(--taste-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  max-width: 19rem;
+  margin: 0;
+}
+
+/* Intro chapter: one anchor card + two companion scenes, not three clones. */
+.studio-features {
+  padding-bottom: clamp(60px, 7vw, 120px);
+}
+
+.studio-kicker,
+.pdf-eyebrow {
+  display: inline-block;
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: #476c73;
+  margin-bottom: 14px;
+}
+
+.studio-section-heading {
+  align-items: end;
+  gap: clamp(20px, 5vw, 90px);
+  margin-bottom: 38px;
+}
+
+.studio-section-heading h2,
+.studio-picks h2,
+.tool-directory .section-heading h2 {
+  color: var(--taste-ink);
+  font-weight: 610;
+  line-height: 1.04;
+  letter-spacing: -0.055em;
+  font-size: clamp(39px, 4.75vw, 70px);
+  max-width: 880px;
+}
+
+.studio-section-heading p {
+  color: var(--taste-muted);
+  font-size: 15px;
+  line-height: 1.65;
+  max-width: 360px;
+}
+
+.studio-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: clamp(14px, 2vw, 28px);
+  row-gap: clamp(14px, 2vw, 28px);
+}
+
+.studio-feature,
+.studio-feature.peach,
+.studio-feature.sage,
+.studio-feature.rose {
+  background: #eee9e0;
+  border: 0;
+  border-radius: 6px;
+  padding: clamp(21px, 2.7vw, 38px);
+  box-shadow: none;
+  min-width: 0;
+  transition: background-color 220ms ease;
+}
+
+.studio-feature.sage {
+  background: #e7eee9;
+}
+
+.studio-feature.rose {
+  background: #f0e9e5;
+}
+
+.studio-feature:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.studio-feature:first-child {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  grid-template-rows: auto auto auto 1fr;
+  align-items: start;
+  gap: 0 clamp(25px, 5vw, 95px);
+  min-height: 390px;
+}
+
+.studio-feature:first-child .feature-mini.editorial-feature-art {
+  grid-row: 1 / 5;
+  grid-column: 1;
+  min-height: 300px;
+  height: 100%;
+  margin: 0;
+}
+
+.studio-feature:first-child .feature-step,
+.studio-feature:first-child h3,
+.studio-feature:first-child p,
+.studio-feature:first-child > button {
+  grid-column: 2;
+}
+
+.studio-feature:first-child .feature-step {
+  align-self: end;
+  margin-top: clamp(6px, 2vw, 30px);
+}
+
+.studio-feature:first-child > button {
+  align-self: end;
+}
+
+.studio-feature .feature-mini.editorial-feature-art {
+  margin-bottom: 25px;
+  border: 0;
+  border-radius: 3px;
+  background: rgba(255, 252, 247, 0.55);
+  box-shadow: none;
+  padding: clamp(12px, 2vw, 25px);
+  min-height: 205px;
+}
+
+.studio-feature .feature-mini.editorial-feature-art > img {
+  height: 100%;
+  max-height: 300px;
+  min-height: 185px;
+  width: 100%;
+  object-fit: contain;
+}
+
+.studio-feature:hover .feature-mini,
+.studio-feature:hover .feature-mini.editorial-feature-art {
+  transform: none;
+  box-shadow: none;
+}
+
+.studio-feature:hover .editorial-feature-art > img {
+  transform: rotate(-1.6deg) translateY(-5px);
+}
+
+.editorial-feature-tag {
+  border: 0;
+  border-radius: 3px;
+  color: #365b65;
+  background: #fffcf7;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.studio-feature .feature-step {
+  font-size: 13px;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 670;
+  color: #436a73;
+}
+
+.studio-feature h3 {
+  font-size: clamp(27px, 3vw, 42px);
+  letter-spacing: -0.055em;
+  font-weight: 610;
+  line-height: 1.04;
+  color: var(--taste-ink);
+  max-width: 20ch;
+}
+
+.studio-feature p {
+  min-height: 0;
+  max-width: 47ch;
+  font-size: 15px;
+  color: var(--taste-muted);
+  line-height: 1.6;
+  margin: 15px 0 22px;
+}
+
+.studio-feature > button {
+  color: #274f58;
+  font-size: 14px;
+  font-weight: 700;
+  padding-top: 0;
+}
+
+.studio-feature > button:hover {
+  color: #1e3f47;
+}
+
+/* The approved hands serve as a photographic chapter break, full bleed. */
+.studio-human-connection {
+  border: 0;
+  background: #ede9e7;
+}
+
+.studio-human-connection .human-connection-copy h2 {
+  color: var(--taste-ink);
+  letter-spacing: -0.055em;
+}
+
+.studio-human-connection .human-connection-copy p {
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--taste-muted);
+}
+
+.human-connection-panorama {
+  background: #ede9e7;
+}
+
+/* Real code is the picture. No pseudo-editor decoration needed. */
+.studio-tour {
+  padding-top: clamp(90px, 10vw, 145px);
+  padding-bottom: clamp(75px, 8vw, 125px);
+}
+
+.studio-tour h2 {
+  max-width: 800px;
+  font-size: clamp(38px, 5vw, 69px);
+  color: var(--taste-ink);
+  font-weight: 610;
+  letter-spacing: -0.052em;
+}
+
+.studio-tour > p {
+  color: var(--taste-muted);
+  font-size: 15px;
+  margin-bottom: 37px;
+}
+
+.studio-tour .tour-frame {
+  background: #e7e9e4;
+  border: 0;
+  border-radius: 6px;
+  padding: clamp(13px, 2.5vw, 31px);
+  box-shadow: none;
+  max-width: 1050px;
+  width: min(1050px, 100%);
+}
+
+.tour-browser,
+.studio-tour .tour-browser {
+  border: 0;
+  border-radius: 3px;
+  box-shadow: 0 18px 45px rgba(30, 58, 65, 0.1);
+}
+
+.tour-editorial-symbol {
+  left: -18px;
+  top: -20px;
+  width: 70px;
+  height: 70px;
+}
+
+.studio-tour .tour-sticker {
+  background: #fffcf7;
+  color: #3c5961;
+  border-radius: 4px;
+  transform: rotate(0);
+  box-shadow: none;
+  font-size: 12px;
+  right: -22px;
+}
+
+/* Featured tools as a browsable editorial index, with the tool artwork as proof. */
+.studio-picks {
+  padding-bottom: clamp(95px, 11vw, 170px);
+}
+
+.studio-pick-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(15px, 2vw, 25px);
+}
+
+.studio-pick {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(230px, 0.8fr);
+  grid-template-rows: 1fr auto auto;
+  align-items: start;
+  column-gap: clamp(24px, 6vw, 100px);
+  min-height: 285px;
+  padding: clamp(25px, 3.4vw, 52px);
+  text-align: left;
+  background: #e8eeed;
+  border: 0;
+  border-radius: 5px;
+  box-shadow: none;
+  overflow: hidden;
+  transition: background-color 240ms ease;
+}
+
+.studio-pick:nth-child(2) {
+  background: #f0eae4;
+}
+
+.studio-pick:nth-child(3) {
+  background: #ece9ef;
+}
+
+.studio-pick:hover,
+.studio-pick:focus-visible {
+  transform: none;
+  box-shadow: none;
+  border: 0;
+  background-color: #dce8e4;
+}
+
+.studio-pick:nth-child(2):hover {
+  background-color: #e9e1d8;
+}
+
+.studio-pick:nth-child(3):hover {
+  background-color: #e4e0e9;
+}
+
+.studio-pick .pick-title,
+.studio-pick .pick-description,
+.studio-pick .pick-action {
+  grid-column: 1;
+  max-width: 530px;
+}
+
+.studio-pick .pick-title {
+  grid-row: 1;
+  width: auto;
+  align-self: end;
+  color: var(--taste-ink);
+  font-weight: 610;
+  font-size: clamp(29px, 3.6vw, 48px);
+  letter-spacing: -0.052em;
+  line-height: 1.02;
+  margin-bottom: 20px;
+}
+
+.studio-pick .pick-title svg {
+  color: #3e626c;
+  width: 23px;
+  height: 23px;
+  flex-shrink: 0;
+}
+
+.studio-pick .pick-description {
+  grid-row: 2;
+  color: #4c5b61;
+  font-size: 15px;
+  line-height: 1.55;
+  margin-bottom: 20px;
+}
+
+.studio-pick .pick-action {
+  grid-row: 3;
+  color: #28545d;
+  font-size: 14px;
+  font-weight: 720;
+}
+
+.studio-pick .toolkit-art-scene {
+  grid-row: 1 / 4;
+  grid-column: 2;
+  height: 260px;
+  margin: 0;
+  justify-self: center;
+}
+
+.studio-pick .toolkit-art-scene img {
+  max-width: 340px;
+}
+
+.studio-pick:nth-child(2) {
+  grid-template-columns: minmax(230px, 0.8fr) minmax(0, 1fr);
+}
+
+.studio-pick:nth-child(2) .toolkit-art-scene {
+  grid-column: 1;
+}
+
+.studio-pick:nth-child(2) .pick-title,
+.studio-pick:nth-child(2) .pick-description,
+.studio-pick:nth-child(2) .pick-action {
+  grid-column: 2;
+}
+
+.studio-pick:hover .toolkit-art-scene img {
+  transform: translateY(-6px) rotate(-1deg);
+}
+
+/* Directory: dense enough to scan, with affordances that actually work. */
+.tool-directory {
+  background: var(--taste-paper);
+  border-top: 0;
+  padding-block: clamp(80px, 9vw, 140px);
+}
+
+.tool-directory .section-heading h2 {
+  max-width: 750px;
+}
+
+.tool-directory .section-heading p {
+  color: var(--taste-muted);
+  font-size: 15px;
+  margin-top: 14px;
+}
+
+.tool-directory .search-wrap {
+  height: 60px;
+  border-radius: 4px;
+  border: 2px solid #c8d5d3;
+  box-shadow: none;
+  background: #fff;
+}
+
+.tool-directory .search-wrap:focus-within {
+  border-color: #365e67;
+  box-shadow: 0 0 0 3px rgba(49, 111, 123, 0.12);
+}
+
+.tool-directory .directory-shortcuts button,
+.tool-directory .category-tabs button {
+  border-radius: 4px;
+  font-size: 13px;
+  min-height: 40px;
+  color: #4b6064;
+  font-weight: 620;
+}
+
+.tool-directory .category-tabs button.active,
+.tool-directory .directory-shortcuts button.active {
+  background: #365e67;
+  border-color: #365e67;
+  color: #fff;
+}
+
+.tool-directory .tool-grid {
+  gap: 13px;
+}
+
+.tool-directory .tool-card {
+  background: #f4f5f1;
+  border: 0;
+  border-radius: 4px;
+  min-height: 210px;
+  box-shadow: none;
+  transition: background-color 200ms ease;
+}
+
+.tool-directory .tool-card:hover {
+  transform: none;
+  background: #e9f0ed;
+  box-shadow: none;
+  border-color: transparent;
+}
+
+.tool-directory .tool-card:focus-within {
+  outline: 2px solid #346a73;
+  outline-offset: 2px;
+}
+
+.tool-card .card-top {
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+.tool-card-category {
+  margin-right: auto;
+  font-size: 12px;
+  font-weight: 640;
+  color: #587078;
+}
+
+.tool-card .tool-icon {
+  background: #fff;
+  border-radius: 4px;
+  width: 40px;
+  height: 40px;
+  color: #385965;
+}
+
+.tool-card .favorite {
+  min-height: 36px;
+  min-width: 36px;
+}
+
+.tool-card .card-link h3 {
+  color: var(--taste-ink);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.tool-card .card-link p {
+  color: #53636a;
+  font-size: 13px;
+}
+
+.tool-card .card-bottom {
+  border-color: #d8e1de;
+  color: #365e67;
+}
+
+.tool-card .card-bottom span {
+  font-size: 12px;
+  color: #48676f;
+}
+
+/* Pricing stays truthful: one plan, the actual price, and real included features. */
+.studio-pass {
+  background-color: #f0f0e9;
+}
+
+.studio-pass h2 {
+  color: var(--taste-ink);
+  font-size: clamp(38px, 4.7vw, 65px);
+}
+
+.studio-pass h2 em {
+  font-family: inherit;
+  font-style: normal;
+  color: inherit;
+}
+
+.studio-pass .pass-card {
+  background: #dce8e4;
+  border: 0;
+  border-radius: 6px;
+  transform: none;
+  box-shadow: 0 24px 60px rgba(24, 52, 60, 0.13);
+}
+
+.studio-pass .pass-card:hover,
+.studio-pass .pass-card:focus-within {
+  transform: translateY(-3px);
+  box-shadow: 0 28px 63px rgba(24, 52, 60, 0.17);
+}
+
+.studio-pass .pass-card::before {
+  opacity: 0.1;
+}
+
+.studio-pass .pass-card-paper {
+  background: #fffcf7;
+  border: 0;
+  border-radius: 3px;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+.studio-pass .pass-plan-head strong {
+  color: #2d4f57;
+}
+
+.studio-pass .pass-primary-action {
+  border-radius: 4px;
+}
+
+.studio-pass .studio-source-link {
+  background: #fffcf7;
+  border: 0;
+  border-radius: 3px;
+  color: #345f67;
+}
+
+.studio-faq {
+  padding-block: clamp(85px, 9vw, 140px);
+}
+
+.studio-faq h2 {
+  color: var(--taste-ink);
+  font-size: clamp(39px, 4.4vw, 65px);
+}
+
+.faq-list {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.faq-list summary {
+  background: transparent;
+  font-weight: 650;
+  color: #293e46;
+  font-size: 16px;
+}
+
+.faq-list details[open] summary,
+.faq-list summary:hover {
+  color: #2b5760;
+  background: #ecf1ed;
+}
+
+.faq-list details[open] > p {
+  background: #f7f8f4;
+  color: #52636a;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+/* Functional pages share the same visual contract without ornamental media. */
+.workspace,
+.pdf-studio {
+  --studio-ink: var(--taste-ink);
+  --studio-muted: var(--taste-muted);
+  --studio-purple: #365e67;
+}
+
+.workspace-heading h1,
+.pdf-heading h1 {
+  color: var(--taste-ink);
+  font-weight: 615;
+  letter-spacing: -0.05em;
+}
+
+.workspace .eyebrow-label,
+.pdf-eyebrow {
+  color: #426c75;
+  font-size: 13px;
+  letter-spacing: 0;
+}
+
+.workspace-grid {
+  gap: clamp(15px, 2vw, 25px);
+}
+
+.workspace .input-panel,
+.workspace .output-panel {
+  background: #fbfbf8;
+  border: 1px solid #d9e2de;
+  border-radius: 5px;
+  box-shadow: none;
+}
+
+.workspace .panel-heading {
+  background: #eef2ee;
+  border-color: #d9e1dc;
+}
+
+.workspace .field input,
+.workspace .field textarea,
+.workspace .field select {
+  border: 1px solid #cbd9d4;
+  border-radius: 4px;
+  color: var(--taste-ink);
+  background: #fff;
+  font-size: 14px;
+}
+
+.workspace .field > span,
+.workspace .panel-heading > span {
+  font-size: 13px;
+  color: #3d5862;
+  font-weight: 650;
+}
+
+.workspace .output-empty {
+  color: #60777c;
+}
+
+.workspace .privacy-note,
+.workspace .source-link,
+.workspace .workspace-footnote {
+  color: #597078;
+  font-size: 12px;
+}
+
+.workspace .icon-button,
+.workspace .text-button {
+  color: #3d606a;
+}
+
+.pdf-studio {
+  color: var(--taste-ink);
+}
+
+.pdf-studio .pdf-heading h1,
+.pdf-studio .pdf-heading h1 em {
+  color: var(--taste-ink);
+  font-family: "DM Sans Variable", sans-serif;
+  font-style: normal;
+  font-size: clamp(35px, 4.2vw, 59px);
+}
+
+.pdf-studio .pdf-panel,
+.pdf-studio .pdf-canvas-header,
+.pdf-studio .pdf-pagination {
+  border-color: #dbe3df;
+  background: #fffefa;
+  box-shadow: none;
+  border-radius: 4px;
+}
+
+.pdf-studio .pdf-tool-sections {
+  background: #eef2ed;
+}
+
+.pdf-studio .pdf-tool-sections button.active,
+.pdf-studio .pdf-operation-grid button.selected {
+  border-color: #87aca8;
+  background: #e0ebe6;
+  color: #254e57;
+}
+
+.pdf-studio .pdf-primary {
+  border-radius: 4px;
+}
+
+.pdf-studio .pdf-preview-stage {
+  background: #e3e8e4;
+}
+
+.pdf-studio .pdf-drop {
+  background: #f3f4ef;
+  border: 2px dashed #a2bdb7;
+  border-radius: 5px;
+}
+
+/* Links and tool chrome remain reachable in keyboard and touch modes. */
+@media (hover: hover) and (pointer: fine) {
+  .tool-directory .tool-card:hover .card-bottom svg,
+  .studio-pick:hover .pick-action svg {
+    transform: translate(3px, -2px);
+  }
+}
+
+@media (max-width: 1000px) {
+  .studio-feature:first-child {
+    min-height: 350px;
+    gap: 0 30px;
+  }
+
+  .studio-pick .toolkit-art-scene {
+    height: 215px;
+  }
+
+  .studio-pick {
+    min-height: 245px;
+  }
+}
+
+@media (max-width: 720px) {
+  .studio-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 36px 22px;
+    padding-bottom: 76px;
+  }
+
+  .studio-section-heading {
+    align-items: start;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .studio-feature-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .studio-feature:first-child {
+    grid-column: auto;
+    display: flex;
+    min-height: 0;
+  }
+
+  .studio-feature:first-child .feature-mini.editorial-feature-art {
+    min-height: 205px;
+    height: auto;
+    margin-bottom: 25px;
+  }
+
+  .studio-feature .feature-mini.editorial-feature-art > img {
+    max-height: 240px;
+  }
+
+  .studio-pick,
+  .studio-pick:nth-child(2) {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto auto;
+    min-height: 0;
+    padding: 24px;
+    gap: 0;
+  }
+
+  .studio-pick .pick-title,
+  .studio-pick:nth-child(2) .pick-title {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: start;
+    font-size: clamp(26px, 6vw, 38px);
+  }
+
+  .studio-pick .toolkit-art-scene,
+  .studio-pick:nth-child(2) .toolkit-art-scene {
+    grid-row: 2;
+    grid-column: 1;
+    height: 220px;
+    margin-block: 6px 13px;
+  }
+
+  .studio-pick .pick-description,
+  .studio-pick:nth-child(2) .pick-description {
+    grid-row: 3;
+    grid-column: 1;
+  }
+
+  .studio-pick .pick-action,
+  .studio-pick:nth-child(2) .pick-action {
+    grid-row: 4;
+    grid-column: 1;
+  }
+
+  .studio-tour .tour-sticker {
+    right: 0;
+  }
+
+  .studio-feature h3 {
+    font-size: clamp(28px, 5vw, 37px);
+  }
+
+  .studio-stats strong {
+    font-size: clamp(45px, 9vw, 76px);
+  }
+}
+
+@media (max-width: 440px) {
+  .hero .hero-badge {
+    font-size: 11px;
+    padding: 9px 12px 9px 28px;
+  }
+
+  .studio-stats {
+    gap: 26px 18px;
+  }
+
+  .studio-stats strong {
+    font-size: 44px;
+  }
+
+  .studio-stats h3 {
+    font-size: 13px;
+  }
+
+  .studio-stats p {
+    font-size: 12px;
+  }
+
+  .studio-pick .toolkit-art-scene {
+    height: 190px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-feature,
+  .studio-pick,
+  .tool-directory .tool-card,
+  .site-header button,
+  .studio-button,
+  .editorial-feature-art > img,
+  .toolkit-art-scene img {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}
