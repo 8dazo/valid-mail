@@ -7,6 +7,7 @@ import "./landing-polish.css";
 import "./pdf-studio.css";
 import "./editorial-visuals.css";
 import "./art-directed-v2.css";
+import "./taste-revamp.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
