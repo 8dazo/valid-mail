@@ -159,6 +159,7 @@ function ToolCard({
     >
       <div className="card-top">
         <ToolIcon tool={tool} />
+        <span className="tool-card-category">{tool.category}</span>
         <button
           className={`favorite ${favorite ? "selected" : ""}`}
           aria-label={`${favorite ? "Remove" : "Add"} ${tool.name} ${favorite ? "from" : "to"} favorites`}
@@ -1071,7 +1072,7 @@ function AppContent() {
                   transition={{ duration: 0.6 }}
                 >
                   <span className="hero-badge">
-                    Your everyday utility toolkit
+                    The everyday toolkit, built for real work
                   </span>
                   <h1 id="hero-title">
                     Less friction.
